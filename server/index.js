@@ -1,19 +1,31 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+// 1. Initialize Express FIRST
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Middleware
+// 2. Middleware
 app.use(cors());
 app.use(express.json());
 
-// Test route
+// 3. Routes (authRoutes must come AFTER 'app' is initialized)
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
+// 4. Database Connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("Connected to MongoDB successfully!"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+// 5. Test route
 app.get('/', (req, res) => {
   res.json({ message: "ATS Backend API is running successfully!" });
 });
 
+// 6. Start Server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
