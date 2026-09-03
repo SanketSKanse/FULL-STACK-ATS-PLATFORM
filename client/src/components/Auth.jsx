@@ -24,6 +24,13 @@ export default function Auth() {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         setSuccessMessage("Logged in successfully! Redirecting...");
+        
+        // --- ADDED THIS TIMEOUT & RELOAD ---
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+        // ----------------------------------
+
       } else {
         setSuccessMessage("Registration successful! Please log in.");
         setIsLogin(true); // Switch to login view after signing up
