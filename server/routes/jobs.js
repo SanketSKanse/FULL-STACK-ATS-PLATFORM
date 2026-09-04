@@ -10,7 +10,7 @@ const statusValues = ['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'Of
 
 router.get('/', async (req, res) => {
   try {
-    const jobs = await Job.find({ status: { $ne: 'CLOSED' } })
+    const jobs = await Job.find({ status: 'ACTIVE' })
       .populate('companyId', 'name website description logo')
       .populate('postedBy', 'name email');
     res.json(jobs);

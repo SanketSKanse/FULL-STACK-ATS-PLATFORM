@@ -18,6 +18,9 @@ app.use('/api/auth', authRoutes);
 const jobRoutes = require('./routes/jobs');
 app.use('/api/jobs', jobRoutes);
 
+const applicantRoutes = require('./routes/applicant');
+app.use('/api/applicant', applicantRoutes);
+
 // 4. Database Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB successfully!"))

@@ -3,6 +3,7 @@ import axios from 'axios';
 import Auth from './components/Auth';
 import RecruiterDashboard from './components/RecruiterDashboard';
 import CandidateDashboard from './components/CandidateDashboard';
+import ApplicantOnboarding from './components/ApplicantOnboarding';
 
 export class AppErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -35,6 +36,7 @@ export class AppErrorBoundary extends React.Component {
 export default function App() {
   const [user, setUser] = useState(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [applicantProfile, setApplicantProfile] = useState(undefined);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -51,6 +53,10 @@ export default function App() {
         }
         localStorage.setItem('user', JSON.stringify(authenticatedUser));
         setUser(authenticatedUser);
+        if (authenticatedUser.role === 'applicant') {
+          return axios.get('http://localhost:5001/api/applicant/profile', { headers: { Authorization: `Bearer ${token}` } })
+            .then((profileResponse) => setApplicantProfile(profileResponse.data.profile));
+        }
       })
       .catch(() => {
         localStorage.removeItem('token');
@@ -62,6 +68,17 @@ export default function App() {
       });
   }, []);
 
+  useEffect(() => {
+    if (!user) {
+      if (window.location.pathname !== '/') window.history.replaceState({}, '', '/');
+      return;
+    }
+    const expectedPath = user.role === 'recruiter' ? '/recruiter' : '/applicant';
+    if (window.location.pathname === '/' || window.location.pathname.startsWith(user.role === 'recruiter' ? '/applicant' : '/recruiter')) {
+      window.history.replaceState({}, '', expectedPath);
+    }
+  }, [user]);
+
   if (isCheckingSession) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA] text-sm text-slate-500">
@@ -72,6 +89,14 @@ export default function App() {
 
   if (!user) {
     return <Auth />;
+  }
+
+  if (user.role === 'applicant' && applicantProfile === undefined) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA] text-sm text-slate-500">Loading your profile...</div>;
+  }
+
+  if (user.role === 'applicant' && (!applicantProfile || !applicantProfile.profileCompleted)) {
+    return <ApplicantOnboarding user={user} initialProfile={applicantProfile} onComplete={(profile) => { setApplicantProfile(profile); window.history.replaceState({}, '', '/applicant'); }} />;
   }
 
   if (user.role === 'recruiter') {

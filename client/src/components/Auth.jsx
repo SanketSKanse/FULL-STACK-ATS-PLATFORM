@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { ArrowRight, BriefcaseBusiness, CheckCircle2, CircleDashed, Sparkles, Users } from 'lucide-react';
+import { BriefcaseBusiness, CircleDashed, Sparkles, UserRound } from 'lucide-react';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -26,7 +26,7 @@ export default function Auth() {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         setSuccessMessage('Logged in successfully! Redirecting...');
         setTimeout(() => {
-          window.location.reload();
+          window.location.href = response.data.user.role === 'recruiter' ? '/recruiter' : '/applicant';
         }, 400);
       } else {
         setSuccessMessage('Registration successful! Please log in.');
@@ -36,12 +36,6 @@ export default function Auth() {
       setError(err.response?.data?.error || 'Something went wrong.');
     }
   };
-
-  const featureCards = [
-    { icon: Users, label: 'Pipeline', value: '42 hires' },
-    { icon: BriefcaseBusiness, label: 'Open roles', value: '08 active' },
-    { icon: CheckCircle2, label: 'Interviews', value: '18 this week' },
-  ];
 
   return (
     <div className="flex min-h-screen bg-[#F7F8FA] text-slate-900">
@@ -69,39 +63,10 @@ export default function Auth() {
             Everything your recruiting team needs to source, evaluate, and hire exceptional candidates.
           </p>
 
-          <div className="mt-8 grid gap-3">
-            {featureCards.map(({ icon: Icon, label, value }) => (
-              <div key={label} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-200">
-                    <Icon size={16} />
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</div>
-                    <div className="text-sm font-medium text-white">{value}</div>
-                  </div>
-                </div>
-                <ArrowRight size={16} className="text-slate-400" />
-              </div>
-            ))}
-          </div>
         </div>
 
-        <div className="relative h-28 overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.35),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.2),rgba(30,41,59,0.7))] p-5">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:26px_26px] opacity-30" />
-          <div className="relative flex h-full items-end justify-between">
-            <div className="flex -space-x-2">
-              {['RS', 'AM', 'YN'].map((initials, index) => (
-                <div key={initials} className={`flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 text-[10px] font-semibold ${index === 0 ? 'bg-indigo-500 text-white' : index === 1 ? 'bg-slate-200 text-slate-700' : 'bg-amber-200 text-amber-900'}`}>
-                  {initials}
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col gap-2 text-right text-xs text-slate-200">
-              <div className="rounded-xl bg-white/5 px-2 py-1">Hiring flow</div>
-              <div className="rounded-xl bg-emerald-500/20 px-2 py-1 text-emerald-200">+12 this week</div>
-            </div>
-          </div>
+        <div className="border-t border-white/10 pt-5 text-sm leading-6 text-slate-400">
+          One career profile for every opportunity you discover on AvantHire.
         </div>
       </div>
 
@@ -124,7 +89,7 @@ export default function Auth() {
           <div className="mb-6">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500">{isLogin ? 'Welcome back' : 'Create account'}</div>
             <h2 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-slate-900">
-              {isLogin ? 'Sign in to your workspace.' : 'Join your hiring team.'}
+              {isLogin ? 'Sign in to your workspace.' : 'Choose how you will use AvantHire.'}
             </h2>
           </div>
 
@@ -154,11 +119,33 @@ export default function Auth() {
 
             {!isLogin && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">I am a</label>
-                <select name="role" value={formData.role} onChange={handleChange} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-200 focus:bg-white">
-                  <option value="applicant">Applicant</option>
-                  <option value="recruiter">Recruiter</option>
-                </select>
+                <fieldset>
+                  <legend className="mb-2 block text-sm font-medium text-slate-700">How will you use AvantHire?</legend>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[
+                      { value: 'applicant', label: 'Applicant', description: 'Find jobs and track applications.', icon: UserRound },
+                      { value: 'recruiter', label: 'Recruiter', description: 'Hire candidates and manage your pipeline.', icon: BriefcaseBusiness },
+                    ].map(({ value, label, description, icon: Icon }) => {
+                      const selected = formData.role === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => setFormData((current) => ({ ...current, role: value }))}
+                          className={`relative flex min-h-[158px] flex-col items-start rounded-2xl border p-4 text-left transition ${selected ? 'border-indigo-500 bg-indigo-50/70 ring-2 ring-indigo-100' : 'border-slate-200 bg-slate-50 hover:border-indigo-200 hover:bg-white'}`}
+                        >
+                          <span className={`mb-5 flex h-10 w-10 items-center justify-center rounded-xl ${selected ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500'}`}>
+                            <Icon size={18} aria-hidden="true" />
+                          </span>
+                          <span className="text-sm font-semibold text-slate-900">{label}</span>
+                          <span className="mt-1 text-xs leading-5 text-slate-500">{description}</span>
+                          {selected && <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-indigo-600" aria-label="Selected" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
               </div>
             )}
 
