@@ -5,6 +5,14 @@ const jobSchema = new mongoose.Schema({
   description: { type: String, required: true },
   department: { type: String, required: true },
   location: { type: String, required: true },
+  employmentType: { type: String, default: 'Full-time' },
+  requirements: { type: [String], default: [] },
+  status: { type: String, enum: ['ACTIVE', 'DRAFT', 'CLOSED'], default: 'ACTIVE' },
+  companyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    default: null
+  },
   postedBy: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 

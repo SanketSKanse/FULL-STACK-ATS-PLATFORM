@@ -6,9 +6,14 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { 
     type: String, 
-    enum: ['recruiter', 'candidate'], 
+    enum: ['recruiter', 'applicant'], 
     required: true,
-    default: 'candidate' 
+    default: 'applicant'
+  },
+  companyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    default: null
   }
 }, { timestamps: true });
 

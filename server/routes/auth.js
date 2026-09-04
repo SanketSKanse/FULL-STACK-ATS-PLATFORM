@@ -1,80 +1,83 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const User = require('../models/user');
+const Company = require('../models/company');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// 1. REGISTER ROUTE
+const publicUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  companyId: user.companyId || null,
+});
+
+const issueToken = (user) => jwt.sign(
+  { userId: user._id },
+  process.env.JWT_SECRET,
+  { expiresIn: '1d' }
+);
+
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, companyName, companyWebsite, companyDescription } = req.body;
+    const normalizedRole = role === 'candidate' ? 'applicant' : role;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: "User with this email already exists." });
+    if (!['applicant', 'recruiter'].includes(normalizedRole)) {
+      return res.status(400).json({ error: 'Choose Applicant or Recruiter.' });
+    }
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required.' });
+    }
+    if (normalizedRole === 'recruiter' && !companyName) {
+      return res.status(400).json({ error: 'Company name is required for recruiters.' });
     }
 
-    // Hash the password (10 rounds of salt)
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this email already exists.' });
+    }
 
-    // Create and save new user
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-      role: role || 'candidate'
-    });
+    const passwordHash = await bcrypt.hash(password, 10);
+    let companyId = null;
+    if (normalizedRole === 'recruiter') {
+      const company = await Company.create({
+        name: companyName,
+        website: companyWebsite || '',
+        description: companyDescription || '',
+      });
+      companyId = company._id;
+    }
 
-    await newUser.save();
-
-    res.status(201).json({ message: "User registered successfully!" });
+    const user = await User.create({ name, email, password: passwordHash, role: normalizedRole, companyId });
+    res.status(201).json({ message: 'User registered successfully!', user: publicUser(user) });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error during registration." });
+    res.status(500).json({ error: 'Server error during registration.' });
   }
 });
 
-// 2. LOGIN ROUTE
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Find user by email
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: "Invalid email or password." });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(400).json({ error: 'Invalid email or password.' });
     }
 
-    // Compare passwords
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: "Invalid email or password." });
-    }
-
-    // Create a JWT Token containing user id and role (Expires in 1 day)
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-
-    res.json({
-      message: "Logged in successfully!",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
+    res.json({ message: 'Logged in successfully!', token: issueToken(user), user: publicUser(user) });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error during login." });
+    res.status(500).json({ error: 'Server error during login.' });
   }
+});
+
+router.get('/me', requireAuth, async (req, res) => {
+  const user = await User.findById(req.user._id).populate('companyId');
+  res.json({ user: publicUser(user), company: user.companyId || null });
 });
 
 module.exports = router;
