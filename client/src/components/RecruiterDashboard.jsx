@@ -32,6 +32,9 @@ export default function RecruiterDashboard() {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [selectedJob, setSelectedJob] = useState(null);
     const [selectedCandidate, setSelectedCandidate] = useState(null);
+    const [candidateJobFilter, setCandidateJobFilter] = useState('');
+    const [pipelineJobFilter, setPipelineJobFilter] = useState('');
+    const [jobStatusFilter, setJobStatusFilter] = useState('ALL');
     const [step, setStep] = useState(1);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -65,32 +68,72 @@ export default function RecruiterDashboard() {
         try {
             const res = await axios.get(`http://localhost:5001/api/jobs/applications/${user.id}`, authConfig);
             setApplications(res.data);
+            return res.data;
         } catch (err) {
             console.error('Error fetching applications:', err);
+            return [];
         }
     };
 
     const handleStatusChange = async (appId, newStatus) => {
         try {
             await axios.patch(`http://localhost:5001/api/jobs/applications/${appId}/status`, { status: newStatus }, authConfig);
-            fetchApplications();
+            await fetchApplications();
+            if (selectedCandidate?._id === appId) {
+                setSelectedCandidate((current) => ({ ...current, status: newStatus }));
+            }
         } catch (err) {
-            console.error('Error updating status:', err);
+            setError(err.response?.data?.error || 'Failed to update candidate status.');
+        }
+    };
+
+    const handleJobStatusChange = async (job) => {
+        const nextStatus = job.status === 'CLOSED' ? 'ACTIVE' : 'CLOSED';
+        try {
+            const response = await axios.patch(`http://localhost:5001/api/jobs/recruiter/jobs/${job._id}/status`, { status: nextStatus }, authConfig);
+            setJobs((current) => current.map((item) => item._id === job._id ? response.data.job : item));
+            setSelectedJob((current) => current?._id === job._id ? response.data.job : current);
+            setMessage(response.data.message);
+            if (nextStatus === 'CLOSED') setActiveView('Jobs');
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to update job status.');
+        }
+    };
+
+    const scheduleInterview = async (applicationId, event) => {
+        event.preventDefault();
+        const formElement = event.currentTarget;
+        const form = new FormData(formElement);
+        try {
+            const response = await axios.patch(`http://localhost:5001/api/jobs/applications/${applicationId}/interview`, {
+                scheduledAt: form.get('scheduledAt'),
+                round: form.get('round'),
+                location: form.get('location'),
+                notes: form.get('notes'),
+            }, authConfig);
+            const refreshedApplications = await fetchApplications();
+            const refreshedApplication = refreshedApplications.find((application) => application._id === applicationId);
+            setSelectedCandidate((current) => current?._id === applicationId ? { ...current, ...(refreshedApplication || response.data.application) } : current);
+            setMessage(response.data.message);
+            formElement.reset();
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to schedule interview.');
         }
     };
 
     const stageGroups = useMemo(() => {
+        const pipelineApplications = applications.filter((application) => !pipelineJobFilter || application.jobId?._id === pipelineJobFilter || application.jobId === pipelineJobFilter);
         return pipelineStages.map((stage) => {
             const items =
                 stage === 'Interview'
-                    ? applications.filter((app) => app.status === 'Interviewing')
+                    ? pipelineApplications.filter((app) => app.status === 'Interviewing')
                     : stage === 'Offer'
-                        ? applications.filter((app) => app.status === 'Offered')
-                        : applications.filter((app) => app.status === stage);
+                        ? pipelineApplications.filter((app) => app.status === 'Offered')
+                        : pipelineApplications.filter((app) => app.status === stage);
 
             return { stage, count: items.length, items };
         });
-    }, [applications]);
+    }, [applications, pipelineJobFilter]);
 
     const stats = [
         { label: 'Open Positions', value: jobs.length, detail: 'Live roles', tone: 'indigo' },
@@ -113,7 +156,8 @@ export default function RecruiterDashboard() {
             description: jobForm.description,
             department: jobForm.department,
             location: jobForm.location,
-            postedBy: user.id,
+            employmentType: jobForm.employmentType,
+            requirements: jobForm.requirements,
         };
 
         try {
@@ -143,6 +187,18 @@ export default function RecruiterDashboard() {
         localStorage.removeItem('user');
         window.location.reload();
     };
+
+    const selectedJobApplications = selectedJob
+        ? applications.filter((application) => application.jobId?._id === selectedJob._id || application.jobId === selectedJob._id)
+        : [];
+    const filteredCandidates = applications.filter((application) => !candidateJobFilter || application.jobId?._id === candidateJobFilter || application.jobId === candidateJobFilter);
+    const visibleJobs = jobs.filter((job) => jobStatusFilter === 'ALL' || job.status === jobStatusFilter);
+    const todayInterviews = applications.filter((application) => {
+        if (!application.interviewScheduledAt) return false;
+        const interviewDate = new Date(application.interviewScheduledAt);
+        const today = new Date();
+        return interviewDate.toDateString() === today.toDateString();
+    }).sort((left, right) => new Date(left.interviewScheduledAt) - new Date(right.interviewScheduledAt));
 
     const renderSidebar = () => (
         <aside className="hidden w-[252px] flex-col border-r border-slate-200 bg-[#F9FAFB] p-4 lg:flex">
@@ -217,7 +273,7 @@ export default function RecruiterDashboard() {
                         {user.name?.charAt(0) || 'S'}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-800">{user.name || 'Sanket Kanse'}</div>
+                        <div className="truncate text-sm font-semibold text-slate-800">{user.name || 'Recruiter'}</div>
                         <div className="truncate text-[11px] text-slate-500">Recruiting Lead</div>
                     </div>
                 </div>
@@ -332,7 +388,7 @@ export default function RecruiterDashboard() {
                             <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Recruiting dashboard</div>
-                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Good morning, Sanket</h1>
+                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Good morning, {user.name || 'Recruiter'}</h1>
                                     <p className="mt-2 text-sm text-slate-500">Track your hiring activity and candidate pipeline.</p>
                                 </div>
                                 <button type="button" onClick={() => setShowComposer(true)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500">
@@ -382,8 +438,29 @@ export default function RecruiterDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
-                                    Candidate summaries will appear when profile data is available.
+                                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <div>
+                                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Today</div>
+                                            <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-slate-900">Interview schedule</h2>
+                                        </div>
+                                        <CalendarClock size={18} className="text-indigo-500" />
+                                    </div>
+                                    {todayInterviews.length === 0 ? (
+                                        <p className="text-sm text-slate-500">No interviews scheduled for today.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {todayInterviews.map((interview) => (
+                                                <button key={interview._id} type="button" onClick={() => openCandidateProfile(interview)} className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
+                                                    <span>
+                                                        <span className="block text-sm font-semibold text-slate-800">{interview.applicantId?.name || 'Unnamed applicant'}</span>
+                                                        <span className="block text-xs text-slate-500">{interview.jobId?.title || 'Job unavailable'} · {interview.interviewLocation || 'Location not set'}</span>
+                                                    </span>
+                                                    <span className="text-xs font-semibold text-indigo-600">{new Date(interview.interviewScheduledAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </>
@@ -409,52 +486,55 @@ export default function RecruiterDashboard() {
                                     <input placeholder="Search jobs..." className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-200" />
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {['All', 'Active', 'Draft', 'Closed'].map((filter, index) => (
-                                        <button key={filter} type="button" className={`rounded-xl px-3 py-2 text-[12px] font-medium transition ${index === 0 ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}>
-                                            {filter}
+                                    {['ALL', 'ACTIVE', 'DRAFT', 'CLOSED'].map((filter) => (
+                                        <button key={filter} type="button" onClick={() => setJobStatusFilter(filter)} className={`rounded-xl px-3 py-2 text-[12px] font-medium transition ${jobStatusFilter === filter ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}>
+                                            {filter === 'ALL' ? 'All' : filter.charAt(0) + filter.slice(1).toLowerCase()}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            {jobs.length === 0 ? (
+                            {visibleJobs.length === 0 ? (
                                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
                                     <p className="text-sm text-slate-500">No job listings yet. Create your first opening to start hiring.</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {jobs.map((job) => (
-                                        <button key={job._id} type="button" onClick={() => openJobDetail(job)} className="flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50 sm:flex-row sm:items-center">
+                                    {visibleJobs.map((job) => {
+                                        const jobApplications = applications.filter((application) => application.jobId?._id === job._id || application.jobId === job._id);
+                                        const interviewCount = jobApplications.filter((application) => application.status === 'Interviewing').length;
+                                        return <button key={job._id} type="button" onClick={() => openJobDetail(job)} className="flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50 sm:flex-row sm:items-center">
                                             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
                                                 <Building2 size={17} />
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <div className="truncate text-[15px] font-semibold text-slate-800">{job.title}</div>
-                                                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-100">Active</span>
+                                                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ring-1 ${job.status === 'CLOSED' ? 'bg-slate-100 text-slate-600 ring-slate-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-100'}`}>{job.status === 'CLOSED' ? 'Closed' : 'Active'}</span>
                                                 </div>
-                                                <div className="mt-1 text-[12px] text-slate-500">{job.department} · {job.location} · Full-time</div>
+                                                <div className="mt-1 text-[12px] text-slate-500">{job.department} · {job.location} · {job.employmentType || 'Employment type unavailable'}</div>
+                                                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{job.description || 'No job description provided.'}</p>
                                             </div>
                                             <div className="hidden min-w-[180px] text-left md:block">
                                                 <div className="text-[12px] text-slate-500">Hiring manager</div>
-                                                <div className="text-sm font-medium text-slate-700">{user.name || 'Sanket Kanse'}</div>
+                                                <div className="text-sm font-medium text-slate-700">{job.postedBy?.name || user.name || 'Recruiter'}</div>
                                             </div>
                                             <div className="hidden min-w-[110px] text-left md:block">
                                                 <div className="text-[12px] text-slate-500">Candidates</div>
-                                                <div className="text-sm font-semibold text-slate-800">{Math.max(18, Math.round(jobs.length * 7 + 2))}</div>
+                                                <div className="text-sm font-semibold text-slate-800">{jobApplications.length}</div>
                                             </div>
                                             <div className="hidden min-w-[120px] text-left lg:block">
                                                 <div className="text-[12px] text-slate-500">Progress</div>
-                                                <div className="text-sm font-medium text-slate-700">Interviewing</div>
+                                                <div className="text-sm font-medium text-slate-700">{interviewCount} interviewing</div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <div className="hidden text-[12px] text-slate-500 xl:block">2h ago</div>
+                                                <div className="hidden text-[12px] text-slate-500 xl:block">{job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Date unavailable'}</div>
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
                                                     <MoreHorizontal size={16} />
                                                 </div>
                                             </div>
-                                        </button>
-                                    ))}
+                                        </button>;
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -466,23 +546,23 @@ export default function RecruiterDashboard() {
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Job detail</div>
                                     <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{selectedJob.title}</h1>
-                                    <p className="mt-2 text-sm text-slate-500">{selectedJob.department} · {selectedJob.location} · Active</p>
+                                    <p className="mt-2 text-sm text-slate-500">{selectedJob.department} · {selectedJob.location} · {selectedJob.status || 'ACTIVE'}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Edit</button>
                                     <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Share</button>
-                                    <button type="button" className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Pause hiring</button>
+                                    <button type="button" onClick={() => handleJobStatusChange(selectedJob)} className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">{selectedJob.status === 'CLOSED' ? 'Reopen hiring' : 'Pause hiring'}</button>
                                 </div>
                             </div>
 
                             <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                                 {[
-                                    { label: 'Candidates', value: '124' },
-                                    { label: 'New', value: '8' },
-                                    { label: 'Screening', value: '24' },
-                                    { label: 'Interview', value: '18' },
-                                    { label: 'Offer', value: '6' },
-                                    { label: 'Rejected', value: '68' },
+                                    { label: 'Candidates', value: selectedJobApplications.length },
+                                    { label: 'New', value: selectedJobApplications.filter((application) => application.status === 'Applied').length },
+                                    { label: 'Screening', value: selectedJobApplications.filter((application) => application.status === 'Screening').length },
+                                    { label: 'Interview', value: selectedJobApplications.filter((application) => application.status === 'Interviewing').length },
+                                    { label: 'Offer', value: selectedJobApplications.filter((application) => application.status === 'Offered').length },
+                                    { label: 'Rejected', value: selectedJobApplications.filter((application) => application.status === 'Rejected').length },
                                 ].map((metric) => (
                                     <div key={metric.label} className="rounded-2xl border border-slate-200 bg-white p-4">
                                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{metric.label}</div>
@@ -500,11 +580,15 @@ export default function RecruiterDashboard() {
 
                                     <div className="rounded-2xl border border-slate-200 bg-white p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Requirements</div>
-                                        <ul className="space-y-3 text-sm text-slate-600">
-                                            {['React', 'TypeScript', 'Next.js', 'Node.js', 'Product thinking'].map((item) => (
-                                                <li key={item} className="flex items-start gap-3"><span className="mt-1 h-2 w-2 rounded-full bg-indigo-500" /> {item}</li>
-                                            ))}
-                                        </ul>
+                                        {selectedJob.requirements?.length ? (
+                                            <ul className="space-y-3 text-sm text-slate-600">
+                                                {selectedJob.requirements.map((item) => (
+                                                    <li key={item} className="flex items-start gap-3"><span className="mt-1 h-2 w-2 rounded-full bg-indigo-500" /> {item}</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-sm text-slate-500">No requirements listed.</p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -512,22 +596,42 @@ export default function RecruiterDashboard() {
                                     <div className="rounded-2xl border border-slate-200 bg-white p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Hiring team</div>
                                         <div className="space-y-3">
-                                            {['Sanket Kanse', 'Aarohi', 'Riya', 'Product Lead'].map((person) => (
-                                                <div key={person} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                                            {selectedJob.postedBy ? (
+                                                <div key={selectedJob.postedBy._id || selectedJob.postedBy.email || selectedJob.postedBy.name} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-semibold text-indigo-700">{person.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</div>
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-semibold text-indigo-700">{(selectedJob.postedBy.name || 'R').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</div>
                                                         <div>
-                                                            <div className="text-sm font-semibold text-slate-800">{person}</div>
-                                                            <div className="text-[11px] text-slate-500">Recruiting</div>
+                                                            <div className="text-sm font-semibold text-slate-800">{selectedJob.postedBy.name}</div>
+                                                            <div className="text-[11px] text-slate-500">Job owner</div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                <p className="text-sm text-slate-500">No hiring team data available.</p>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
-                                        Candidate matching will appear when profile data is available.
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                        <div className="mb-4 flex items-center justify-between gap-3">
+                                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidates</div>
+                                            <span className="text-xs text-slate-500">{selectedJobApplications.length} total</span>
+                                        </div>
+                                        {selectedJobApplications.length ? selectedJobApplications.map((application) => (
+                                            <div key={application._id} className="flex items-center justify-between gap-3 border-t border-slate-100 py-3 first:border-t-0 first:pt-0">
+                                                <div className="min-w-0">
+                                                    <div className="truncate text-sm font-semibold text-slate-800">{application.applicantId?.name || 'Unnamed applicant'}</div>
+                                                    <div className="text-xs text-slate-500">{application.status || 'Applied'}</div>
+                                                </div>
+                                                {application.resumeUrl ? (
+                                                    <a href={application.resumeUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-lg bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100">View Resume</a>
+                                                ) : (
+                                                    <span className="shrink-0 text-xs text-slate-400">No Resume</span>
+                                                )}
+                                            </div>
+                                        )) : (
+                                            <p className="text-sm text-slate-500">No candidates have applied yet.</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -543,6 +647,10 @@ export default function RecruiterDashboard() {
                                     <p className="mt-2 text-sm text-slate-500">{selectedJob ? `${selectedJob.department} · ${selectedJob.location} · ${selectedJob.status}` : 'Choose a real job to view its pipeline.'}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    <select value={pipelineJobFilter} onChange={(event) => setPipelineJobFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                                        <option value="">All jobs</option>
+                                        {jobs.map((job) => <option key={job._id} value={job._id}>{job.title}</option>)}
+                                    </select>
                                     <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Edit</button>
                                     <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Share</button>
                                     <button type="button" className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Pause hiring</button>
@@ -568,7 +676,7 @@ export default function RecruiterDashboard() {
                             <div className="overflow-x-auto pb-2">
                                 <div className="grid min-w-[980px] grid-cols-6 gap-4">
                                     {pipelineStages.map((stage) => {
-                                        const items = stage === 'Interview' ? applications.filter((app) => app.status === 'Interviewing') : stage === 'Offer' ? applications.filter((app) => app.status === 'Offered') : applications.filter((app) => app.status === stage);
+                                        const items = stageGroups.find((group) => group.stage === stage)?.items || [];
                                         return (
                                             <div key={stage} className="rounded-2xl border border-slate-200 bg-slate-50 p-3" onDragOver={(e) => e.preventDefault()} onDrop={(e) => {
                                                 e.preventDefault();
@@ -613,9 +721,25 @@ export default function RecruiterDashboard() {
                                                                         ))}
                                                                     </div>
 
+                                                                    <div className="mb-3 border-t border-slate-200 pt-3">
+                                                                        {item.resumeUrl ? (
+                                                                            <a
+                                                                                href={item.resumeUrl}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                onClick={(event) => event.stopPropagation()}
+                                                                                className="inline-flex items-center space-x-1 rounded-lg bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100"
+                                                                            >
+                                                                                <span>View Resume</span>
+                                                                            </a>
+                                                                        ) : (
+                                                                            <span className="text-xs text-slate-400">No Resume</span>
+                                                                        )}
+                                                                    </div>
+
                                                                     <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-[11px] text-slate-500">
                                                                         <span>{stage}</span>
-                                                                        <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '2h ago'}</span>
+                                                                        <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Date unavailable'}</span>
                                                                     </div>
                                                                 </div>
                                                             );
@@ -657,6 +781,9 @@ export default function RecruiterDashboard() {
                                         <span className="flex items-center gap-2"><BriefcaseBusiness size={14} /> {selectedCandidate.jobId?.department || 'Department unavailable'}</span>
                                         <span className="flex items-center gap-2"><MapPin size={14} /> {selectedCandidate.jobId?.location || 'Location unavailable'}</span>
                                     </div>
+                                    <select value={selectedCandidate.status || 'Applied'} onChange={(event) => handleStatusChange(selectedCandidate._id, event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                                        {['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'Offered', 'Hired', 'Rejected'].map((status) => <option key={status} value={status}>{status}</option>)}
+                                    </select>
                                 </div>
                             </div>
 
@@ -679,36 +806,42 @@ export default function RecruiterDashboard() {
                                             ))}
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                                        <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidate score</div>
-                                        <div className="mb-4 flex items-center justify-between rounded-2xl bg-slate-50 p-3">
-                                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Overall</div>
-                                            <div className="text-sm text-slate-500">No score available</div>
-                                        </div>
-                                    </div>
 
                                     <div className="rounded-2xl border border-slate-200 bg-white p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Application timeline</div>
                                         <div className="space-y-4">
-                                            {[[selectedCandidate.status || 'Applied', selectedCandidate.createdAt, 'Current application status']].map(([step, date, note]) => (
-                                                <div key={step} className="flex gap-3">
+                                            {(selectedCandidate.statusHistory?.length ? selectedCandidate.statusHistory : [{ status: selectedCandidate.status || 'Applied', createdAt: selectedCandidate.createdAt }]).map((history, index) => (
+                                                <div key={history._id || `${history.status}-${history.createdAt}`} className="flex gap-3">
                                                     <div className="flex flex-col items-center">
                                                         <div className={`mt-0.5 h-3 w-3 rounded-full ${index === 0 ? 'bg-indigo-600' : 'bg-slate-300'}`} />
-                                                        
                                                     </div>
                                                     <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                                                         <div className="flex items-center justify-between gap-3">
-                                                            <div className="text-sm font-semibold text-slate-800">{step}</div>
-                                                            <div className="text-[11px] text-slate-500">{date ? new Date(date).toLocaleDateString() : 'Date unavailable'}</div>
+                                                            <div className="text-sm font-semibold text-slate-800">{history.status}</div>
+                                                            <div className="text-[11px] text-slate-500">{history.createdAt ? new Date(history.createdAt).toLocaleDateString() : 'Date unavailable'}</div>
                                                         </div>
-                                                        <p className="mt-1 text-[12px] text-slate-600">{note}</p>
+                                                        <p className="mt-1 text-[12px] text-slate-600">Status updated by the hiring team.</p>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                        <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Schedule interview</div>
+                                        <form onSubmit={(event) => scheduleInterview(selectedCandidate._id, event)} className="space-y-3">
+                                            <select name="round" defaultValue={selectedCandidate.interviewRound || 'Assessment'} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
+                                                <option value="Assessment">Round 1: Assessment</option>
+                                                <option value="Hiring Manager">Round 2: Hiring Manager</option>
+                                                <option value="HR">Round 3: HR</option>
+                                            </select>
+                                            <input name="scheduledAt" type="datetime-local" required className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700" />
+                                            <input name="location" placeholder="Interview link or location" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700" />
+                                            <textarea name="notes" rows={2} placeholder="Interview notes" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700" />
+                                            <button type="submit" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Schedule interview</button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
@@ -717,23 +850,26 @@ export default function RecruiterDashboard() {
 
                     {activeView === 'Candidates' && (
                         <div>
-                            <div className="mb-6 flex items-end justify-between border-b border-slate-200 pb-5">
+                            <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Talent pool</div>
                                     <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Candidates</h1>
                                 </div>
-                                <button type="button" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Invite candidate</button>
+                                <select value={candidateJobFilter} onChange={(event) => setCandidateJobFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600">
+                                    <option value="">All jobs</option>
+                                    {jobs.map((job) => <option key={job._id} value={job._id}>{job.title}</option>)}
+                                </select>
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                {applications.length === 0 ? (
+                                {filteredCandidates.length === 0 ? (
                                     <div className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center text-sm text-slate-500">No candidates in the pipeline yet.</div>
                                 ) : (
-                                    applications.slice(0, 6).map((item) => {
+                                    filteredCandidates.map((item) => {
                                         const name = item.applicantId?.name || 'Unnamed applicant';
                                         const email = item.applicantId?.email || 'Email unavailable';
                                         return (
-                                            <button key={item._id} type="button" onClick={() => openCandidateProfile(item)} className="rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50">
+                                            <div key={item._id} onClick={() => openCandidateProfile(item)} className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50">
                                                 <div className="mb-3 flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700">{name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div>
@@ -749,19 +885,46 @@ export default function RecruiterDashboard() {
                                                     <span>{item.jobId?.location || 'Location unavailable'}</span>
                                                 </div>
                                                 <div className="mb-3 flex flex-wrap gap-1.5">
-                                                    {['React', 'TypeScript', 'Node', 'Next.js'].map((skill) => (
+                                                    {(item.jobId?.requirements || []).map((skill) => (
                                                         <span key={skill} className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">{skill}</span>
                                                     ))}
                                                 </div>
                                                 <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-                                                    <span className="text-[11px] text-slate-500">Stage</span>
-                                                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">{item.status || 'Applied'}</span>
+                                                    <span className="text-[11px] text-slate-500">Candidate status</span>
+                                                    <select value={item.status || 'Applied'} onClick={(event) => event.stopPropagation()} onChange={(event) => { event.stopPropagation(); handleStatusChange(item._id, event.target.value); }} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
+                                                        {['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'Offered', 'Hired', 'Rejected'].map((status) => <option key={status} value={status}>{status}</option>)}
+                                                    </select>
                                                 </div>
-                                            </button>
+                                            </div>
                                         );
                                     })
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {activeView === 'Interviews' && (
+                        <div>
+                            <div className="mb-6 border-b border-slate-200 pb-5">
+                                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Recruiter calendar</div>
+                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Interviews</h1>
+                                <p className="mt-2 text-sm text-slate-500">Scheduled interviews across your hiring pipeline.</p>
+                            </div>
+                            {applications.filter((application) => application.interviewScheduledAt).length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center text-sm text-slate-500">No interviews scheduled.</div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {applications.filter((application) => application.interviewScheduledAt).sort((left, right) => new Date(left.interviewScheduledAt) - new Date(right.interviewScheduledAt)).map((interview) => (
+                                        <button key={interview._id} type="button" onClick={() => openCandidateProfile(interview)} className="flex w-full flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-indigo-200 hover:bg-indigo-50/30 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <div className="text-sm font-semibold text-slate-800">{interview.applicantId?.name || 'Unnamed applicant'}</div>
+                                                <div className="mt-1 text-xs text-slate-500">{interview.jobId?.title || 'Job unavailable'} · {interview.interviewLocation || 'Location not set'}</div>
+                                            </div>
+                                            <div className="text-sm font-semibold text-indigo-600">{new Date(interview.interviewScheduledAt).toLocaleString()}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -774,7 +937,7 @@ export default function RecruiterDashboard() {
                             </div>
                             <div className="rounded-2xl border border-slate-200 bg-white p-5">
                                 <div className="space-y-3">
-                                    {['Sanket Kanse', 'Aarohi', 'Riya', 'Product Lead'].map((person, index) => (
+                                    {[user.name || 'Recruiter'].map((person, index) => (
                                         <div key={person} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">{person.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</div>
@@ -883,6 +1046,10 @@ export default function RecruiterDashboard() {
                                     <div>
                                         <label className="mb-1.5 block text-sm font-medium text-slate-700">Experience</label>
                                         <input value={jobForm.experience} onChange={(e) => setJobForm({ ...jobForm, experience: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Job description</label>
+                                        <textarea value={jobForm.description} onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })} rows={4} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" placeholder="Describe the role, responsibilities, and impact." />
                                     </div>
                                 </div>
                             )}

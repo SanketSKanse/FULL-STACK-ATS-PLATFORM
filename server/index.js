@@ -11,6 +11,11 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
+const path = require('path');
+
+// Make the uploads folder publicly accessible to view PDFs
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // 3. Routes (authRoutes must come AFTER 'app' is initialized)
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);

@@ -8,6 +8,19 @@ const router = express.Router();
 
 const statusValues = ['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'Offered', 'Hired', 'Rejected'];
 
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+const upload = multer({ storage });
+
 router.get('/', async (req, res) => {
   try {
     const jobs = await Job.find({ status: 'ACTIVE' })
@@ -27,6 +40,23 @@ router.get('/recruiter/jobs', requireAuth, requireRole('recruiter'), async (req,
     res.json(jobs);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch your job openings.' });
+  }
+});
+
+router.patch('/recruiter/jobs/:jobId/status', requireAuth, requireRole('recruiter'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['ACTIVE', 'CLOSED'].includes(status)) return res.status(400).json({ error: 'Invalid job status.' });
+
+    const job = await Job.findOneAndUpdate(
+      { _id: req.params.jobId, companyId: req.user.companyId },
+      { status },
+      { new: true },
+    ).populate('postedBy', 'name email');
+    if (!job) return res.status(404).json({ error: 'Job not found.' });
+    res.json({ message: status === 'CLOSED' ? 'Hiring paused for this job.' : 'Hiring reopened for this job.', job });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update job status.' });
   }
 });
 
@@ -69,9 +99,9 @@ router.post('/', requireAuth, requireRole('recruiter'), async (req, res) => {
   }
 });
 
-router.post('/apply', requireAuth, requireRole('applicant'), async (req, res) => {
+router.post('/apply', requireAuth, requireRole('applicant'), upload.single('resume'), async (req, res) => {
   try {
-    const { jobId, resumeUrl, coverLetter } = req.body;
+    const { jobId, coverLetter } = req.body;
     const job = await Job.findOne({ _id: jobId, status: 'ACTIVE' });
     if (!job) return res.status(404).json({ error: 'Active job not found.' });
 
@@ -83,7 +113,7 @@ router.post('/apply', requireAuth, requireRole('applicant'), async (req, res) =>
     const application = await Application.create({
       jobId,
       applicantId: req.user._id,
-      resumeUrl: resumeUrl || '',
+      resumeUrl: req.file ? `http://localhost:5001/uploads/${req.file.filename}` : '',
       coverLetter: coverLetter || '',
     });
     await ApplicationStatusHistory.create({ applicationId: application._id, status: 'Applied', changedBy: req.user._id });
@@ -100,8 +130,13 @@ router.get('/applications/:recruiterId', requireAuth, requireRole('recruiter'), 
     const jobIds = jobs.map((job) => job._id);
     const applications = await Application.find({ jobId: { $in: jobIds } })
       .populate('applicantId', 'name email')
-      .populate({ path: 'jobId', select: 'title department location requirements companyId', populate: { path: 'companyId', select: 'name' } });
-    res.json(applications);
+      .populate({ path: 'jobId', select: 'title department location employmentType requirements companyId', populate: { path: 'companyId', select: 'name' } });
+    const applicationIds = applications.map((application) => application._id);
+    const histories = await ApplicationStatusHistory.find({ applicationId: { $in: applicationIds } }).sort({ createdAt: 1 });
+    res.json(applications.map((application) => ({
+      ...application.toObject(),
+      statusHistory: histories.filter((history) => String(history.applicationId) === String(application._id)),
+    })));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch candidate applications.' });
   }
@@ -117,12 +152,41 @@ router.patch('/applications/:appId/status', requireAuth, requireRole('recruiter'
       return res.status(404).json({ error: 'Application not found.' });
     }
 
+    if (status === 'Offered' && !application.interviewScheduledAt) {
+      return res.status(400).json({ error: 'Schedule at least one interview before making an offer.' });
+    }
+
     application.status = status;
     await application.save();
     await ApplicationStatusHistory.create({ applicationId: application._id, status, changedBy: req.user._id });
     res.json({ message: 'Application status updated!', application });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update application status.' });
+  }
+});
+
+router.patch('/applications/:appId/interview', requireAuth, requireRole('recruiter'), async (req, res) => {
+  try {
+    const { scheduledAt, round, location, notes } = req.body;
+    if (!scheduledAt || Number.isNaN(new Date(scheduledAt).getTime())) {
+      return res.status(400).json({ error: 'A valid interview date and time are required.' });
+    }
+
+    const application = await Application.findById(req.params.appId).populate('jobId', 'companyId');
+    if (!application || String(application.jobId.companyId) !== String(req.user.companyId)) {
+      return res.status(404).json({ error: 'Application not found.' });
+    }
+
+    application.interviewScheduledAt = new Date(scheduledAt);
+    application.interviewRound = round || 'Assessment';
+    application.interviewLocation = location || '';
+    application.interviewNotes = notes || '';
+    application.status = 'Interviewing';
+    await application.save();
+    await ApplicationStatusHistory.create({ applicationId: application._id, status: 'Interviewing', changedBy: req.user._id });
+    res.json({ message: 'Interview scheduled.', application });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to schedule interview.' });
   }
 });
 

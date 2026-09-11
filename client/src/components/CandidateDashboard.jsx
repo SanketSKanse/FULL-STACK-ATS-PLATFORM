@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, BriefcaseBusiness, Building2, ChevronDown, CircleHelp, FolderKanban, Grid2x2, MapPin, Menu, Search, Settings, Sparkles, UserRound, Users, ArrowRight, X } from 'lucide-react';
+import { Bell, BriefcaseBusiness, Building2, ChevronDown, CircleHelp, FolderKanban, Grid2x2, MapPin, Menu, Search, Settings, UserRound, Users, X } from 'lucide-react';
 import ApplicantOnboarding from './ApplicantOnboarding';
 
 export default function CandidateDashboard() {
+
     const [jobs, setJobs] = useState([]);
     const [recommendedJobs, setRecommendedJobs] = useState([]);
     const [myApplications, setMyApplications] = useState([]);
@@ -29,6 +30,9 @@ export default function CandidateDashboard() {
         fetchProfile();
         fetchRecommendations();
     }, []);
+
+
+    const [resumeFile, setResumeFile] = useState(null);
 
     const fetchOpenJobs = async () => {
         try {
@@ -72,12 +76,11 @@ export default function CandidateDashboard() {
         setMessage('');
 
         try {
-            const payload = {
-                jobId,
-                resumeUrl: profile?.resumeUrl || '',
-            };
+            const formData = new FormData();
+            formData.append('jobId', jobId);
+            if (resumeFile) formData.append('resume', resumeFile);
 
-            const res = await axios.post('http://localhost:5001/api/jobs/apply', payload, authConfig);
+            const res = await axios.post('http://localhost:5001/api/jobs/apply', formData, authConfig);
             setMessage(res.data.message);
             fetchMyApplications();
             setActiveView('Applications');
@@ -318,11 +321,19 @@ export default function CandidateDashboard() {
                                                 ))}
                                             </div>
 
-                                            <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+                                            <div className="flex flex-col gap-4 border-t border-slate-200 pt-4 md:flex-row md:items-center md:justify-between">
                                                 <div className="text-[12px] text-slate-500">{job.requirements?.length ? `${job.requirements.length} requirements` : 'No requirements specified'}</div>
-                                                <button type="button" disabled={myApplications.some((application) => application.jobId?._id === job._id || application.jobId === job._id)} onClick={() => handleApply(job._id)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-emerald-600">
-                                                    {myApplications.some((application) => application.jobId?._id === job._id || application.jobId === job._id) ? 'Applied' : 'Apply now'} {!myApplications.some((application) => application.jobId?._id === job._id || application.jobId === job._id) && <ArrowRight size={14} />}
-                                                </button>
+                                                <div className="mt-4 flex flex-col space-y-3 md:mt-0 md:w-64">
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf"
+                                                        onChange={(event) => setResumeFile(event.target.files[0])}
+                                                        className="text-xs text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-xs file:font-bold file:text-indigo-600 hover:file:bg-indigo-100"
+                                                    />
+                                                    <button type="button" disabled={myApplications.some((application) => application.jobId?._id === job._id || application.jobId === job._id)} onClick={() => handleApply(job._id)} className="rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-indigo-100 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-emerald-600">
+                                                        {myApplications.some((application) => application.jobId?._id === job._id || application.jobId === job._id) ? 'Applied' : 'Apply Now'}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))
@@ -369,6 +380,16 @@ export default function CandidateDashboard() {
                                                     <div className="mt-2 text-sm font-semibold text-slate-800">{app.resumeUrl ? 'Available' : 'Not provided'}</div>
                                                 </div>
                                             </div>
+
+                                            {app.interviewScheduledAt && (
+                                                <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500">Interview scheduled</div>
+                                                    <div className="mt-2 text-sm font-semibold text-slate-800">{new Date(app.interviewScheduledAt).toLocaleString()}</div>
+                                                    <div className="mt-1 text-xs font-medium text-indigo-700">{app.interviewRound || 'Interview round'}</div>
+                                                    <div className="mt-1 text-xs text-slate-600">{app.interviewLocation || 'Location not provided'}</div>
+                                                    {app.interviewNotes && <div className="mt-2 text-xs text-slate-600">{app.interviewNotes}</div>}
+                                                </div>
+                                            )}
 
                                             <div className="mt-5">
                                                 <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Timeline</div>

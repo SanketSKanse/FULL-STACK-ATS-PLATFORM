@@ -3,3 +3,7 @@
 **/env
 server/.env
 client/.env
+
+# Generated dependencies and uploaded files
+server/node_modules/
+server/uploads/
