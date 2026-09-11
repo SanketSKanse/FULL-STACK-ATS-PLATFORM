@@ -2,11 +2,20 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, BriefcaseBusiness, Building2, ChevronDown, CircleHelp, FolderKanban, Grid2x2, MapPin, Menu, Search, Settings, Sparkles, UserRound, Users, ArrowRight, X } from 'lucide-react';
+import ApplicantOnboarding from './ApplicantOnboarding';
 
 export default function CandidateDashboard() {
     const [jobs, setJobs] = useState([]);
+    const [recommendedJobs, setRecommendedJobs] = useState([]);
     const [myApplications, setMyApplications] = useState([]);
-    const [activeView, setActiveView] = useState('Browse');
+    const [profile, setProfile] = useState(null);
+    const [profileCompletion, setProfileCompletion] = useState(0);
+    const [editingProfile, setEditingProfile] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [locationFilter, setLocationFilter] = useState('');
+    const [departmentFilter, setDepartmentFilter] = useState('');
+    const [employmentFilter, setEmploymentFilter] = useState('');
+    const [activeView, setActiveView] = useState(window.location.pathname.includes('/applications') ? 'Applications' : window.location.pathname.includes('/profile') ? 'Profile' : 'Browse');
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -17,6 +26,8 @@ export default function CandidateDashboard() {
     useEffect(() => {
         fetchOpenJobs();
         fetchMyApplications();
+        fetchProfile();
+        fetchRecommendations();
     }, []);
 
     const fetchOpenJobs = async () => {
@@ -25,6 +36,25 @@ export default function CandidateDashboard() {
             setJobs(res.data);
         } catch (err) {
             console.error('Error fetching jobs:', err);
+        }
+    };
+
+    const fetchProfile = async () => {
+        try {
+            const res = await axios.get('http://localhost:5001/api/applicant/profile', authConfig);
+            setProfile(res.data.profile);
+            setProfileCompletion(res.data.completion);
+        } catch (err) {
+            console.error('Error fetching profile:', err);
+        }
+    };
+
+    const fetchRecommendations = async () => {
+        try {
+            const res = await axios.get('http://localhost:5001/api/applicant/recommendations', authConfig);
+            setRecommendedJobs(res.data);
+        } catch (err) {
+            console.error('Error fetching recommendations:', err);
         }
     };
 
@@ -44,13 +74,14 @@ export default function CandidateDashboard() {
         try {
             const payload = {
                 jobId,
-                resumeUrl: 'https://example.com/sample-resume.pdf',
+                resumeUrl: profile?.resumeUrl || '',
             };
 
             const res = await axios.post('http://localhost:5001/api/jobs/apply', payload, authConfig);
             setMessage(res.data.message);
             fetchMyApplications();
             setActiveView('Applications');
+            window.history.replaceState({}, '', '/applicant/applications');
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to submit application.');
         }
@@ -62,7 +93,17 @@ export default function CandidateDashboard() {
         window.location.reload();
     };
 
-    const navItems = ['Browse', 'Applications'];
+    const navItems = ['Browse', 'Applications', 'Profile'];
+    const filteredJobs = jobs.filter((job) => {
+        const searchable = `${job.title} ${job.department} ${job.location} ${job.description} ${(job.requirements || []).join(' ')}`.toLowerCase();
+        return searchable.includes(searchTerm.toLowerCase())
+            && (!locationFilter || job.location === locationFilter)
+            && (!departmentFilter || job.department === departmentFilter)
+            && (!employmentFilter || job.employmentType === employmentFilter);
+    });
+    const locations = [...new Set(jobs.map((job) => job.location).filter(Boolean))];
+    const departments = [...new Set(jobs.map((job) => job.department).filter(Boolean))];
+    const employmentTypes = [...new Set(jobs.map((job) => job.employmentType).filter(Boolean))];
 
     const renderSidebar = () => (
         <aside className="hidden w-[252px] flex-col border-r border-slate-200 bg-[#F9FAFB] p-4 lg:flex">
@@ -82,7 +123,7 @@ export default function CandidateDashboard() {
                 <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-semibold text-slate-700">{(user.name || 'S').charAt(0).toUpperCase()}</div>
                     <div>
-                        <div className="text-sm font-semibold text-slate-800">{user.name || 'Sanket'}</div>
+                        <div className="text-sm font-semibold text-slate-800">{user.name || 'Applicant'}</div>
                         <div className="text-[11px] text-slate-500">Candidate profile</div>
                     </div>
                 </div>
@@ -91,9 +132,9 @@ export default function CandidateDashboard() {
             <div className="mt-6 space-y-1">
                 {navItems.map((item) => {
                     const isActive = activeView === item;
-                    const Icon = item === 'Browse' ? Grid2x2 : BriefcaseBusiness;
+                    const Icon = item === 'Browse' ? Grid2x2 : item === 'Applications' ? BriefcaseBusiness : UserRound;
                     return (
-                        <button key={item} type="button" onClick={() => setActiveView(item)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}>
+                        <button key={item} type="button" onClick={() => { setActiveView(item); window.history.replaceState({}, '', item === 'Applications' ? '/applicant/applications' : item === 'Profile' ? '/applicant/profile' : '/applicant'); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}>
                             <Icon size={16} className={isActive ? 'text-indigo-600' : 'text-slate-400'} />
                             <span>{item}</span>
                             {isActive && <span className="ml-auto h-2 w-2 rounded-full bg-indigo-500" />}
@@ -121,8 +162,8 @@ export default function CandidateDashboard() {
                         {(user.name || 'S').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-800">{user.name || 'Sanket'}</div>
-                        <div className="truncate text-[11px] text-slate-500">Frontend developer</div>
+                        <div className="truncate text-sm font-semibold text-slate-800">{user.name || 'Applicant'}</div>
+                        <div className="truncate text-[11px] text-slate-500">{profile?.headline || 'Profile incomplete'}</div>
                     </div>
                 </div>
             </div>
@@ -150,10 +191,11 @@ export default function CandidateDashboard() {
                         <div className="space-y-1">
                             {navItems.map((item) => {
                                 const isActive = activeView === item;
-                                const Icon = item === 'Browse' ? Grid2x2 : BriefcaseBusiness;
+                                const Icon = item === 'Browse' ? Grid2x2 : item === 'Applications' ? BriefcaseBusiness : UserRound;
                                 return (
                                     <button key={item} type="button" onClick={() => {
                                         setActiveView(item);
+                                        window.history.replaceState({}, '', item === 'Applications' ? '/applicant/applications' : item === 'Profile' ? '/applicant/profile' : '/applicant');
                                         setMobileNavOpen(false);
                                     }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}>
                                         <Icon size={16} className={isActive ? 'text-indigo-600' : 'text-slate-400'} />
@@ -210,29 +252,44 @@ export default function CandidateDashboard() {
                     {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
                     {message && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</div>}
 
+                    {activeView === 'Profile' && profile && !editingProfile && (
+                        <div>
+                            <div className="mb-6 flex items-end justify-between border-b border-slate-200 pb-5"><div><div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Your profile</div><h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{user.name}</h1><p className="mt-2 text-sm text-slate-500">{profile.headline || 'Add a professional headline'} · {profile.location || 'Location not added'}</p></div><button type="button" onClick={() => setEditingProfile(true)} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Edit profile</button></div>
+                            <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center justify-between"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Profile completion</div><div className="mt-2 text-3xl font-semibold text-slate-900">{profileCompletion}%</div></div><div className="h-2 w-40 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-indigo-600" style={{ width: `${profileCompletion}%` }} /></div></div></div>
+                            <div className="grid gap-4 lg:grid-cols-2"><ProfileSection title="About" content={profile.summary || 'No professional summary added yet.'} /><ProfileSection title="Skills" content={profile.skills?.length ? profile.skills.join(' · ') : 'No skills added yet.'} /><ProfileSection title="Experience" content={profile.experiences?.length ? profile.experiences.map((item) => `${item.title || 'Role'} at ${item.company || 'Company'}`).join(' · ') : 'No experience added yet.'} /><ProfileSection title="Education" content={profile.education?.length ? profile.education.map((item) => `${item.degree || 'Degree'} at ${item.institution || 'Institution'}`).join(' · ') : 'No education added yet.'} /><ProfileSection title="Certifications" content={profile.certifications?.length ? profile.certifications.map((item) => item.name).join(' · ') : 'No certifications added yet.'} /><ProfileSection title="Achievements" content={profile.achievements?.length ? profile.achievements.map((item) => item.title).join(' · ') : 'No achievements added yet.'} /><ProfileSection title="Resume" content={profile.resumeFileName || 'No resume uploaded.'} /></div>
+                        </div>
+                    )}
+
+                    {activeView === 'Profile' && editingProfile && <ApplicantOnboarding user={user} initialProfile={profile} onComplete={(updatedProfile) => { setProfile(updatedProfile); setEditingProfile(false); fetchProfile(); }} />}
+
                     {activeView === 'Browse' && (
                         <>
                             <div className="mb-6 border-b border-slate-200 pb-5">
                                 <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Find your next opportunity</div>
-                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Hi {user.name || 'Sanket'}, discover what’s next.</h1>
-                                <p className="mt-2 text-sm text-slate-500">Explore curated roles that match your experience and skills.</p>
+                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Hi {user.name || 'Applicant'}, discover what’s next.</h1>
+                                <p className="mt-2 text-sm text-slate-500">Explore roles from companies hiring on AvantHire.</p>
+                            </div>
+
+                            <div className="mb-6">
+                                <div className="mb-3 flex items-center justify-between"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Based on your profile</div><h2 className="mt-1 text-lg font-semibold text-slate-900">Recommended jobs</h2></div><span className="text-xs text-slate-500">{recommendedJobs.length} matches</span></div>
+                                {recommendedJobs.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-6 text-sm text-slate-500">No roles match your profile yet. Update your skills or career preferences to improve recommendations.</div> : <div className="grid gap-3 lg:grid-cols-2">{recommendedJobs.slice(0, 4).map((job) => <div key={job._id} className="flex items-center justify-between gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4"><div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-900">{job.title}</div><div className="mt-1 truncate text-xs text-slate-500">{job.companyId?.name || 'Company unavailable'} · {job.location}</div></div><div className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700">{job.matchScore}% match</div></div>)}</div>}
                             </div>
 
                             <div className="mb-5 grid gap-3 lg:grid-cols-[1.2fr_0.6fr_0.6fr_0.6fr]">
                                 <div className="relative">
                                     <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input placeholder="Search jobs" className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-200" />
+                                    <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search jobs" className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-200" />
                                 </div>
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600">Location <span className="text-slate-400">Mumbai</span></div>
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600">Department <span className="text-slate-400">Engineering</span></div>
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600">Job type <span className="text-slate-400">Full-time</span></div>
+                                <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600"><option value="">All locations</option>{locations.map((location) => <option key={location} value={location}>{location}</option>)}</select>
+                                <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600"><option value="">All departments</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select>
+                                <select value={employmentFilter} onChange={(event) => setEmploymentFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600"><option value="">All job types</option>{employmentTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select>
                             </div>
 
                             <div className="grid gap-4 xl:grid-cols-2">
-                                {jobs.length === 0 ? (
+                                {filteredJobs.length === 0 ? (
                                     <div className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center text-sm text-slate-500">No open roles right now. New jobs will appear here soon.</div>
                                 ) : (
-                                    jobs.map((job) => (
+                                    filteredJobs.map((job) => (
                                         <div key={job._id} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
                                             <div className="mb-4 flex items-start justify-between gap-3">
                                                 <div className="flex items-center gap-3">
@@ -262,7 +319,7 @@ export default function CandidateDashboard() {
                                             </div>
 
                                             <div className="flex items-center justify-between border-t border-slate-200 pt-4">
-                                                <div className="text-[12px] text-slate-500">{job.requirements?.length || 0} listed requirements</div>
+                                                <div className="text-[12px] text-slate-500">{job.requirements?.length ? `${job.requirements.length} requirements` : 'No requirements specified'}</div>
                                                 <button type="button" disabled={myApplications.some((application) => application.jobId?._id === job._id || application.jobId === job._id)} onClick={() => handleApply(job._id)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-emerald-600">
                                                     {myApplications.some((application) => application.jobId?._id === job._id || application.jobId === job._id) ? 'Applied' : 'Apply now'} {!myApplications.some((application) => application.jobId?._id === job._id || application.jobId === job._id) && <ArrowRight size={14} />}
                                                 </button>
@@ -281,7 +338,7 @@ export default function CandidateDashboard() {
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Your activity</div>
                                     <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">My Applications</h1>
                                 </div>
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">{myApplications.length || 0} active</div>
+                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">{myApplications.length} total</div>
                             </div>
 
                             {myApplications.length === 0 ? (
@@ -309,7 +366,7 @@ export default function CandidateDashboard() {
                                                 </div>
                                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                                                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Resume</div>
-                                                    <div className="mt-2 text-sm font-semibold text-slate-800">Uploaded</div>
+                                                    <div className="mt-2 text-sm font-semibold text-slate-800">{app.resumeUrl ? 'Available' : 'Not provided'}</div>
                                                 </div>
                                             </div>
 
@@ -354,4 +411,8 @@ export default function CandidateDashboard() {
             </div>
         </div>
     );
+}
+
+function ProfileSection({ title, content }) {
+    return <section className="rounded-2xl border border-slate-200 bg-white p-5"><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{title}</div><p className="mt-3 text-sm leading-6 text-slate-600">{content}</p></section>;
 }

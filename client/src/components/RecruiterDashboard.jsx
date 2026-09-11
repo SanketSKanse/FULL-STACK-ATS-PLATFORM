@@ -35,19 +35,11 @@ export default function RecruiterDashboard() {
     const [step, setStep] = useState(1);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-    const [jobForm, setJobForm] = useState({
-        title: 'Frontend Developer',
-        department: 'Engineering',
-        location: 'Mumbai / Remote',
-        employmentType: 'Full-time',
-        experience: '2–4 years',
-        description: 'We are looking for a frontend engineer to build polished products, improve customer experience, and collaborate closely with design and product.',
-        requirements: ['React', 'TypeScript', 'Next.js', 'Node.js'],
-        niceToHave: ['AWS', 'GraphQL'],
-        manager: 'Sanket Kanse',
-        recruiters: ['Aarohi', 'Riya'],
-        panel: ['Product', 'Engineering', 'Design'],
-    });
+    const emptyJobForm = {
+        title: '', department: '', location: '', employmentType: 'Full-time', experience: '',
+        description: '', requirements: [], niceToHave: [], manager: '', recruiters: [], panel: [],
+    };
+    const [jobForm, setJobForm] = useState(emptyJobForm);
 
     const user = JSON.parse(localStorage.getItem('user')) || {};
     const authConfig = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
@@ -129,19 +121,7 @@ export default function RecruiterDashboard() {
             setMessage('Job successfully published to the public board!');
             setShowComposer(false);
             setStep(1);
-            setJobForm({
-                title: 'Frontend Developer',
-                department: 'Engineering',
-                location: 'Mumbai / Remote',
-                employmentType: 'Full-time',
-                experience: '2–4 years',
-                description: 'We are looking for a frontend engineer to build polished products, improve customer experience, and collaborate closely with design and product.',
-                requirements: ['React', 'TypeScript', 'Next.js', 'Node.js'],
-                niceToHave: ['AWS', 'GraphQL'],
-                manager: 'Sanket Kanse',
-                recruiters: ['Aarohi', 'Riya'],
-                panel: ['Product', 'Engineering', 'Design'],
-            });
+            setJobForm({ ...emptyJobForm });
             fetchJobs();
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to post job.');
@@ -402,14 +382,8 @@ export default function RecruiterDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                                    <div className="mb-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">AI candidate summary</div>
-                                    <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                                        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-600"><Sparkles size={12} /> AI summary</div>
-                                        <p className="text-sm leading-6 text-slate-700">
-                                            “Strong frontend candidate with 4 years of React experience. Matches 92% of the role requirements. Strong TypeScript and Next.js experience. Missing: formal team leadership experience.”
-                                        </p>
-                                    </div>
+                                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                                    Candidate summaries will appear when profile data is available.
                                 </div>
                             </div>
                         </>
@@ -552,13 +526,8 @@ export default function RecruiterDashboard() {
                                         </div>
                                     </div>
 
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                                        <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Smart summary</div>
-                                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                                            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-600"><Sparkles size={12} /> Match</div>
-                                            <div className="text-3xl font-semibold tracking-[-0.05em] text-slate-900">92%</div>
-                                            <p className="mt-2 text-sm leading-6 text-slate-600">Strong frontend signal with TypeScript and modern product experience. One gap is leadership exposure.</p>
-                                        </div>
+                                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                                        Candidate matching will appear when profile data is available.
                                     </div>
                                 </div>
                             </div>
@@ -570,8 +539,8 @@ export default function RecruiterDashboard() {
                             <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidate pipeline</div>
-                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Frontend Developer</h1>
-                                    <p className="mt-2 text-sm text-slate-500">Engineering · Mumbai · Active</p>
+                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{selectedJob?.title || 'Select a job'}</h1>
+                                    <p className="mt-2 text-sm text-slate-500">{selectedJob ? `${selectedJob.department} · ${selectedJob.location} · ${selectedJob.status}` : 'Choose a real job to view its pipeline.'}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Edit</button>
@@ -631,16 +600,15 @@ export default function RecruiterDashboard() {
                                                                                 <div className="text-[11px] text-slate-500">{role}</div>
                                                                             </div>
                                                                         </div>
-                                                                        <span className="rounded-full bg-indigo-50 px-1.5 py-1 text-[10px] font-semibold text-indigo-700">92%</span>
                                                                     </div>
 
                                                                     <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-500">
-                                                                        <span className="inline-flex items-center gap-1"><BriefcaseBusiness size={11} /> 4 yrs</span>
-                                                                        <span className="inline-flex items-center gap-1"><MapPin size={11} /> Location unavailable</span>
+                                                                        <span className="inline-flex items-center gap-1"><BriefcaseBusiness size={11} /> {role}</span>
+                                                                        <span className="inline-flex items-center gap-1"><MapPin size={11} /> {item.jobId?.location || 'Location unavailable'}</span>
                                                                     </div>
 
                                                                     <div className="mb-3 flex flex-wrap gap-1.5">
-                                                                        {['React', 'TypeScript', 'Node'].map((skill) => (
+                                                                        {(item.jobId?.requirements || []).map((skill) => (
                                                                             <span key={skill} className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">{skill}</span>
                                                                         ))}
                                                                     </div>
@@ -686,10 +654,9 @@ export default function RecruiterDashboard() {
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                                     <div className="flex flex-wrap gap-3 text-sm text-slate-500">
                                         <span className="flex items-center gap-2"><UserRound size={14} /> {selectedCandidate.applicantId?.email || 'Email unavailable'}</span>
-                                        <span className="flex items-center gap-2"><BriefcaseBusiness size={14} /> 4 years experience</span>
-                                        <span className="flex items-center gap-2"><MapPin size={14} /> Mumbai, India</span>
+                                        <span className="flex items-center gap-2"><BriefcaseBusiness size={14} /> {selectedCandidate.jobId?.department || 'Department unavailable'}</span>
+                                        <span className="flex items-center gap-2"><MapPin size={14} /> {selectedCandidate.jobId?.location || 'Location unavailable'}</span>
                                     </div>
-                                    <div className="rounded-full bg-indigo-50 px-3 py-1.5 text-[11px] font-semibold text-indigo-700">92% Match</div>
                                 </div>
                             </div>
 
@@ -719,46 +686,23 @@ export default function RecruiterDashboard() {
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidate score</div>
                                         <div className="mb-4 flex items-center justify-between rounded-2xl bg-slate-50 p-3">
                                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Overall</div>
-                                            <div className="text-3xl font-semibold tracking-[-0.05em] text-slate-900">92%</div>
-                                        </div>
-                                        <div className="space-y-3 text-sm text-slate-600">
-                                            {[
-                                                ['Skills Match', 94],
-                                                ['Experience', 91],
-                                                ['Culture Fit', 88],
-                                            ].map(([label, value]) => (
-                                                <div key={label}>
-                                                    <div className="mb-1 flex items-center justify-between">
-                                                        <span>{label}</span>
-                                                        <span className="font-semibold text-slate-800">{value}%</span>
-                                                    </div>
-                                                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                                                        <div className="h-full rounded-full bg-indigo-500" style={{ width: `${value}%` }} />
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            <div className="text-sm text-slate-500">No score available</div>
                                         </div>
                                     </div>
 
                                     <div className="rounded-2xl border border-slate-200 bg-white p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Application timeline</div>
                                         <div className="space-y-4">
-                                            {[
-                                                ['Applied', '23 Aug 2026', 'Submitted resume and portfolio'],
-                                                ['Screening', '25 Aug 2026', 'Recruiter reviewed skills alignment'],
-                                                ['Interview', '28 Aug 2026', 'Initial screen with engineering lead'],
-                                                ['Technical Round', '02 Sep 2026', 'Frontend architecture review'],
-                                                ['Offer', '05 Sep 2026', 'Compensation package motion'],
-                                            ].map(([step, date, note], index) => (
+                                            {[[selectedCandidate.status || 'Applied', selectedCandidate.createdAt, 'Current application status']].map(([step, date, note]) => (
                                                 <div key={step} className="flex gap-3">
                                                     <div className="flex flex-col items-center">
                                                         <div className={`mt-0.5 h-3 w-3 rounded-full ${index === 0 ? 'bg-indigo-600' : 'bg-slate-300'}`} />
-                                                        {index < 4 && <div className="mt-2 h-8 w-px bg-slate-200" />}
+                                                        
                                                     </div>
                                                     <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                                                         <div className="flex items-center justify-between gap-3">
                                                             <div className="text-sm font-semibold text-slate-800">{step}</div>
-                                                            <div className="text-[11px] text-slate-500">{date}</div>
+                                                            <div className="text-[11px] text-slate-500">{date ? new Date(date).toLocaleDateString() : 'Date unavailable'}</div>
                                                         </div>
                                                         <p className="mt-1 text-[12px] text-slate-600">{note}</p>
                                                     </div>
@@ -798,12 +742,11 @@ export default function RecruiterDashboard() {
                                                             <div className="text-[12px] text-slate-500">{email}</div>
                                                         </div>
                                                     </div>
-                                                    <span className="rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-700">92%</span>
                                                 </div>
                                                 <div className="mb-3 flex items-center gap-2 text-[11px] text-slate-500">
-                                                    <span>Frontend Developer</span>
+                                                    <span>{item.jobId?.title || 'Role unavailable'}</span>
                                                     <span>•</span>
-                                                    <span>Mumbai</span>
+                                                    <span>{item.jobId?.location || 'Location unavailable'}</span>
                                                 </div>
                                                 <div className="mb-3 flex flex-wrap gap-1.5">
                                                     {['React', 'TypeScript', 'Node', 'Next.js'].map((skill) => (
