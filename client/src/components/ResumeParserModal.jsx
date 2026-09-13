@@ -89,30 +89,30 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl rounded-3xl glass-container border-white/20 p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto text-white">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-indigo-400/30 bg-indigo-500/20 text-indigo-300 shadow-sm">
               <Sparkles size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">AI Resume Parser</h2>
-              <p className="text-xs text-slate-500">Upload your PDF resume to auto-fill your profile details</p>
+              <h2 className="text-lg font-bold text-white">AI Resume Parser</h2>
+              <p className="text-xs text-slate-300">Upload your PDF resume to auto-fill your profile details</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+            className="flex h-8 w-8 items-center justify-center rounded-xl glass-pill text-slate-300 hover:text-white transition"
           >
             <X size={18} />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs text-red-700">
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/20 px-3.5 py-2.5 text-xs text-rose-200">
             <AlertCircle size={15} className="shrink-0" />
             <span>{error}</span>
           </div>
@@ -128,8 +128,8 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
               onClick={() => fileInputRef.current?.click()}
               className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition ${
                 isDragging
-                  ? 'border-indigo-500 bg-indigo-50/50'
-                  : 'border-slate-200 bg-slate-50/60 hover:border-indigo-300 hover:bg-white'
+                  ? 'border-indigo-400 bg-indigo-500/20'
+                  : 'border-white/20 glass-box hover:border-indigo-400/40 hover:bg-white/10'
               }`}
             >
               <input
@@ -142,13 +142,13 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
                   if (selected) validateAndSetFile(selected);
                 }}
               />
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-soft text-indigo-600">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-400/30 bg-indigo-500/20 shadow-md text-indigo-300">
                 <Upload size={22} />
               </div>
-              <div className="mt-3 text-sm font-semibold text-slate-800">
+              <div className="mt-3 text-sm font-semibold text-white">
                 {file ? file.name : 'Click to select PDF or drag & drop'}
               </div>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-300">
                 {file ? `${(file.size / (1024 * 1024)).toFixed(2)} MB · Ready to parse` : 'Supports standard PDF resumes up to 10MB'}
               </p>
             </div>
@@ -159,7 +159,7 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
                 type="button"
                 onClick={onClose}
                 disabled={isParsing}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+                className="rounded-xl glass-pill px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/15 transition"
               >
                 Cancel
               </button>
@@ -167,7 +167,7 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
                 type="button"
                 disabled={!file || isParsing}
                 onClick={handleParse}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {isParsing ? (
                   <>
@@ -186,15 +186,15 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
         ) : (
           /* Extraction Results Preview */
           <div className="mt-6 space-y-5 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-xs text-emerald-800">
+            <div className="flex items-center justify-between rounded-xl border border-emerald-400/30 bg-emerald-500/20 px-4 py-3 text-xs text-emerald-200">
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                <CheckCircle2 size={16} className="text-emerald-300 shrink-0" />
                 <span className="font-semibold">Successfully extracted profile data!</span>
               </div>
               <button
                 type="button"
                 onClick={() => setParsedResult(null)}
-                className="text-[11px] font-semibold text-emerald-700 underline hover:text-emerald-900"
+                className="text-[11px] font-semibold text-emerald-300 underline hover:text-white"
               >
                 Upload different file
               </button>
@@ -202,34 +202,34 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
 
             {/* Extracted Details Overview */}
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+              <div className="rounded-xl border border-white/10 glass-box p-3.5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Candidate Name</div>
-                <div className="mt-1 text-sm font-semibold text-slate-800">{parsedResult.name || 'Not detected'}</div>
+                <div className="mt-1 text-sm font-semibold text-white">{parsedResult.name || 'Not detected'}</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+              <div className="rounded-xl border border-white/10 glass-box p-3.5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Headline</div>
-                <div className="mt-1 text-sm font-semibold text-slate-800 truncate">{parsedResult.headline || 'Not detected'}</div>
+                <div className="mt-1 text-sm font-semibold text-white truncate">{parsedResult.headline || 'Not detected'}</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+              <div className="rounded-xl border border-white/10 glass-box p-3.5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Email & Phone</div>
-                <div className="mt-1 text-xs text-slate-700">
+                <div className="mt-1 text-xs text-slate-200">
                   {parsedResult.email || 'No email'} · {parsedResult.phone || 'No phone'}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+              <div className="rounded-xl border border-white/10 glass-box p-3.5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Location</div>
-                <div className="mt-1 text-xs text-slate-700">{parsedResult.location || 'Not specified'}</div>
+                <div className="mt-1 text-xs text-slate-200">{parsedResult.location || 'Not specified'}</div>
               </div>
             </div>
 
             {/* Extracted Skills */}
             <div>
-              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-700">
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-200">
                 <span>Extracted Skills ({parsedResult.skills?.length || 0})</span>
               </div>
-              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto rounded-xl border border-white/10 glass-box p-2.5">
                 {(parsedResult.skills || []).map((skill) => (
-                  <span key={skill} className="rounded-lg bg-white border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs">
+                  <span key={skill} className="rounded-lg glass-pill px-2.5 py-1 text-xs font-medium text-white">
                     {skill}
                   </span>
                 ))}
@@ -238,17 +238,17 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
 
             {/* Extracted Experience Count & Education Count */}
             <div className="grid gap-3 sm:grid-cols-2 text-xs">
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="font-semibold text-slate-800">Experience Items ({parsedResult.experiences?.length || 0})</div>
-                <ul className="mt-1.5 space-y-1 text-slate-600">
+              <div className="rounded-xl border border-white/10 glass-box p-3">
+                <div className="font-semibold text-white">Experience Items ({parsedResult.experiences?.length || 0})</div>
+                <ul className="mt-1.5 space-y-1 text-slate-300">
                   {(parsedResult.experiences || []).slice(0, 3).map((exp, idx) => (
                     <li key={idx} className="truncate">• {exp.title} ({exp.company})</li>
                   ))}
                 </ul>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="font-semibold text-slate-800">Education Details ({parsedResult.education?.length || 0})</div>
-                <ul className="mt-1.5 space-y-1 text-slate-600">
+              <div className="rounded-xl border border-white/10 glass-box p-3">
+                <div className="font-semibold text-white">Education Details ({parsedResult.education?.length || 0})</div>
+                <ul className="mt-1.5 space-y-1 text-slate-300">
                   {(parsedResult.education || []).slice(0, 2).map((edu, idx) => (
                     <li key={idx} className="truncate">• {edu.degree}</li>
                   ))}
@@ -257,18 +257,18 @@ export default function ResumeParserModal({ isOpen, onClose, onApplyParsedData }
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+            <div className="flex items-center justify-between border-t border-white/10 pt-4">
               <button
                 type="button"
                 onClick={() => setParsedResult(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                className="rounded-xl glass-pill px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/15"
               >
                 Back
               </button>
               <button
                 type="button"
                 onClick={handleConfirmApply}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-indigo-500 transition"
               >
                 <span>Apply Extracted Data to Profile</span>
                 <ArrowRight size={14} />

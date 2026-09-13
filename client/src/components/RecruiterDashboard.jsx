@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import CandidateMatchCard from './CandidateMatchCard';
 import ApplicationTimeline from './ApplicationTimeline';
+import ThemeToggle from './ThemeToggle';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function RecruiterDashboard() {
     const [jobs, setJobs] = useState([]);
@@ -225,6 +227,30 @@ export default function RecruiterDashboard() {
         window.location.reload();
     };
 
+    const handleRecruiterNotificationClick = (notif) => {
+        if (notif.type === 'INTERVIEW_SCHEDULED') {
+            setActiveView('Interviews');
+        } else if (notif.metadata?.applicationId) {
+            const app = applications.find(
+                (a) => String(a._id) === String(notif.metadata.applicationId) || String(a._id) === String(notif.metadata.candidateId)
+            );
+            if (app) {
+                openCandidateProfile(app);
+            } else {
+                setActiveView('Candidates');
+            }
+        } else if (notif.metadata?.jobId) {
+            const job = jobs.find((j) => String(j._id) === String(notif.metadata.jobId));
+            if (job) {
+                openJobDetail(job);
+            } else {
+                setActiveView('Jobs');
+            }
+        } else {
+            setActiveView('Overview');
+        }
+    };
+
     const selectedJobApplications = selectedJob
         ? applications.filter((application) => application.jobId?._id === selectedJob._id || application.jobId === selectedJob._id)
         : [];
@@ -238,80 +264,83 @@ export default function RecruiterDashboard() {
     }).sort((left, right) => new Date(left.interviewScheduledAt) - new Date(right.interviewScheduledAt));
 
     const renderSidebar = () => (
-        <aside className="hidden w-[252px] flex-col border-r border-slate-200 bg-[#F9FAFB] p-4 lg:flex">
-            <div className="flex items-center gap-3 px-2 pb-4 pt-1">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white">A</div>
-                <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">ATS</div>
-                    <div className="text-sm font-semibold text-slate-900">AvantHire</div>
-                </div>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-soft">
-                <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-500">
-                    <span>Workspace</span>
-                    <ChevronDown size={14} className="text-slate-400" />
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-semibold text-slate-700">A</div>
+        <aside className="ats-sidebar sticky top-0 hidden h-screen w-[252px] flex-col justify-between p-4 lg:flex">
+            <div className="flex flex-1 min-h-0 flex-col">
+                <div className="flex items-center gap-3 px-2 pb-4 pt-1 shrink-0">
+                    <div className="brand-badge flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold shadow-sm">A</div>
                     <div>
-                        <div className="text-sm font-semibold text-slate-800">Avant Labs</div>
-                        <div className="text-[11px] text-slate-500">Global hiring</div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">ATS</div>
+                        <div className="text-sm font-bold text-white">AvantHire</div>
+                    </div>
+                </div>
+
+                <div className="glass-box mt-3 rounded-2xl p-3 shadow-md shrink-0">
+                    <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-300">
+                        <span>Workspace</span>
+                        <ChevronDown size={14} className="text-slate-400" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="brand-badge flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-bold">A</div>
+                        <div>
+                            <div className="text-sm font-bold text-white">Avant Labs</div>
+                            <div className="text-[11px] text-slate-300">Global hiring</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-4 flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                    {navItems.map((item) => {
+                        const isActive = item === activeView || (item === 'Jobs' && activeView === 'JobDetail') || (item === 'Candidates' && activeView === 'CandidateProfile');
+                        const Icon = item === 'Overview' ? Grid2x2 : item === 'Jobs' ? BriefcaseBusiness : item === 'Candidates' ? Users : item === 'Pipeline' ? FolderKanban : item === 'Interviews' ? CalendarClock : CheckCheck;
+                        return (
+                            <button
+                                key={item}
+                                type="button"
+                                onClick={() => {
+                                    setActiveView(item);
+                                    setMobileNavOpen(false);
+                                }}
+                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
+                                    isActive
+                                        ? 'nav-item-active font-bold shadow-sm'
+                                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                                }`}
+                            >
+                                <Icon size={16} className={isActive ? 'text-white' : 'text-slate-400'} />
+                                <span>{item}</span>
+                                {isActive && <span className="ml-auto h-2 w-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />}
+                            </button>
+                        );
+                    })}
+
+                    <div className="mt-4 border-t border-white/10 pt-3">
+                        <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Manage</div>
+                        {['Team', 'Settings'].map((item) => {
+                            const Icon = item === 'Team' ? Users : Settings;
+                            return (
+                                <button key={item} type="button" onClick={() => setActiveView(item)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${activeView === item ? 'nav-item-active font-bold shadow-sm' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                                    <Icon size={16} className={activeView === item ? 'text-white' : 'text-slate-400'} />
+                                    <span>{item}</span>
+                                </button>
+                            );
+                        })}
+                        <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-400 transition hover:bg-rose-500/20 hover:text-rose-300">
+                            <LogOut size={16} />
+                            <span>Log out</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-6 space-y-1">
-                {navItems.map((item) => {
-                    const isActive = item === activeView || (item === 'Jobs' && activeView === 'JobDetail') || (item === 'Candidates' && activeView === 'CandidateProfile');
-                    const Icon = item === 'Overview' ? Grid2x2 : item === 'Jobs' ? BriefcaseBusiness : item === 'Candidates' ? Users : item === 'Pipeline' ? FolderKanban : item === 'Interviews' ? CalendarClock : CheckCheck;
-                    return (
-                        <button
-                            key={item}
-                            type="button"
-                            onClick={() => {
-                                setActiveView(item);
-                                setMobileNavOpen(false);
-                            }}
-                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}
-                        >
-                            <Icon size={16} className={isActive ? 'text-indigo-600' : 'text-slate-400'} />
-                            <span>{item}</span>
-                            {isActive && <span className="ml-auto h-2 w-2 rounded-full bg-indigo-500" />}
-                        </button>
-                    );
-                })}
-            </div>
-
-            <div className="mt-6 border-t border-slate-200 pt-4">
-                <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Manage</div>
-                {['Team', 'Settings'].map((item) => {
-                    const Icon = item === 'Team' ? Users : Settings;
-                    return (
-                        <button key={item} type="button" onClick={() => setActiveView(item)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${activeView === item ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}>
-                            <Icon size={16} className="text-slate-400" />
-                            <span>{item}</span>
-                        </button>
-                    );
-                })}
-                <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition hover:bg-red-50 hover:text-red-700">
-                    <LogOut size={16} className="text-slate-400" />
-                    <span>Log out</span>
-                </button>
-                <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700">
-                    <UserRound size={16} className="text-slate-400" />
-                    <span>Applicant portal</span>
-                </button>
-            </div>
-
-            <div className="mt-auto rounded-2xl border border-slate-200 bg-white p-3">
+            {/* Pinned User Card at the very bottom of the sidebar */}
+            <div className="glass-box mt-3 rounded-2xl p-3 shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
+                    <div className="brand-badge flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold">
                         {user.name?.charAt(0) || 'S'}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-800">{user.name || 'Recruiter'}</div>
-                        <div className="truncate text-[11px] text-slate-500">Recruiting Lead</div>
+                        <div className="user-name-text truncate text-sm font-bold">{user.name || 'Recruiter'}</div>
+                        <div className="user-subtitle-text truncate text-[11px]">Recruiting Lead</div>
                     </div>
                 </div>
             </div>
@@ -319,61 +348,59 @@ export default function RecruiterDashboard() {
     );
 
     return (
-        <div className="app-shell flex">
+        <div className="app-shell flex min-h-screen">
             {renderSidebar()}
 
             <AnimatePresence>
                 {mobileNavOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden">
-                        <motion.aside initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="h-full w-[84%] max-w-[280px] border-r border-slate-200 bg-[#F9FAFB] p-4">
-                            <div className="mb-4 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white">A</div>
-                                    <div>
-                                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">ATS</div>
-                                        <div className="text-sm font-semibold text-slate-900">AvantHire</div>
+                        <motion.aside initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="ats-sidebar h-full w-[84%] max-w-[280px] p-4 flex flex-col justify-between">
+                            <div className="flex flex-1 min-h-0 flex-col">
+                                <div className="mb-4 flex items-center justify-between shrink-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="brand-badge flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold shadow-sm">A</div>
+                                        <div>
+                                            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">ATS</div>
+                                            <div className="text-sm font-bold text-white">AvantHire</div>
+                                        </div>
                                     </div>
+                                    <button type="button" onClick={() => setMobileNavOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white">
+                                        <X size={16} />
+                                    </button>
                                 </div>
-                                <button type="button" onClick={() => setMobileNavOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600">
-                                    <X size={16} />
-                                </button>
-                            </div>
 
-                            <div className="space-y-1">
-                                {navItems.map((item) => {
-                                    const isActive = item === activeView || (item === 'Jobs' && activeView === 'JobDetail') || (item === 'Candidates' && activeView === 'CandidateProfile');
-                                    const Icon = item === 'Overview' ? Grid2x2 : item === 'Jobs' ? BriefcaseBusiness : item === 'Candidates' ? Users : item === 'Pipeline' ? FolderKanban : item === 'Interviews' ? CalendarClock : CheckCheck;
-                                    return (
-                                        <button key={item} type="button" onClick={() => {
-                                            setActiveView(item);
-                                            setMobileNavOpen(false);
-                                        }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}>
-                                            <Icon size={16} className={isActive ? 'text-indigo-600' : 'text-slate-400'} />
-                                            <span>{item}</span>
-                                        </button>
-                                    );
-                                })}
-                                <div className="mt-4 border-t border-slate-200 pt-4">
-                                    {['Team', 'Settings'].map((item) => {
-                                        const Icon = item === 'Team' ? Users : Settings;
+                                <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                    {navItems.map((item) => {
+                                        const isActive = item === activeView || (item === 'Jobs' && activeView === 'JobDetail') || (item === 'Candidates' && activeView === 'CandidateProfile');
+                                        const Icon = item === 'Overview' ? Grid2x2 : item === 'Jobs' ? BriefcaseBusiness : item === 'Candidates' ? Users : item === 'Pipeline' ? FolderKanban : item === 'Interviews' ? CalendarClock : CheckCheck;
                                         return (
                                             <button key={item} type="button" onClick={() => {
                                                 setActiveView(item);
                                                 setMobileNavOpen(false);
-                                            }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition hover:bg-white hover:text-slate-900">
-                                                <Icon size={16} className="text-slate-400" />
+                                            }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${isActive ? 'nav-item-active font-bold shadow-sm' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                                                <Icon size={16} className={isActive ? 'text-white' : 'text-slate-400'} />
                                                 <span>{item}</span>
                                             </button>
                                         );
                                     })}
-                                    <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition hover:bg-red-50 hover:text-red-700">
-                                        <LogOut size={16} className="text-slate-400" />
-                                        <span>Log out</span>
-                                    </button>
-                                    <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700">
-                                        <UserRound size={16} className="text-slate-400" />
-                                        <span>Applicant portal</span>
-                                    </button>
+                                    <div className="mt-4 border-t border-white/10 pt-4">
+                                        {['Team', 'Settings'].map((item) => {
+                                            const Icon = item === 'Team' ? Users : Settings;
+                                            return (
+                                                <button key={item} type="button" onClick={() => {
+                                                    setActiveView(item);
+                                                    setMobileNavOpen(false);
+                                                }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white">
+                                                    <Icon size={16} className="text-slate-400" />
+                                                    <span>{item}</span>
+                                                </button>
+                                            );
+                                        })}
+                                        <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-400 transition hover:bg-rose-500/20 hover:text-rose-300">
+                                            <LogOut size={16} />
+                                            <span>Log out</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </motion.aside>
@@ -382,36 +409,37 @@ export default function RecruiterDashboard() {
             </AnimatePresence>
 
             <div className="min-w-0 flex-1">
-                <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm">
+                <header className="ats-header sticky top-0 z-20">
                     <div className="flex h-20 items-center justify-between gap-4 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
-                            <button type="button" onClick={() => setMobileNavOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 lg:hidden">
+                            <button type="button" onClick={() => setMobileNavOpen(true)} className="glass-box flex h-9 w-9 items-center justify-center rounded-xl lg:hidden">
                                 <Menu size={16} />
                             </button>
-                            <div className="text-sm text-slate-500">
+                            <div className="text-sm text-slate-300">
                                 <span className="font-medium text-slate-400">ATS</span>
-                                <span className="mx-2">/</span>
-                                <span className="font-medium text-slate-700">{activeView}</span>
+                                <span className="mx-2 text-slate-400">/</span>
+                                <span className="font-semibold heading-title">{activeView}</span>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-3">
                             <div className="relative hidden md:block">
                                 <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input placeholder="Search jobs, candidates, notes..." className="w-[300px] rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-12 text-sm text-slate-700 outline-none transition focus:border-indigo-200 focus:bg-white" />
-                                <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[10px] font-semibold text-slate-500">⌘ K</div>
+                                <input placeholder="Search jobs, candidates, notes..." className="glass-input w-[300px] rounded-xl py-2.5 pl-9 pr-12 text-sm outline-none transition focus:border-indigo-400" />
+                                <div className="glass-box absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-semibold">⌘ K</div>
                             </div>
-                            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50">
-                                <Bell size={16} />
-                            </button>
-                            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50">
-                                <CircleHelp size={16} />
-                            </button>
-                            <button type="button" onClick={() => setShowComposer(true)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-indigo-500">
+
+                            {/* Live Notification Dropdown for Recruiter */}
+                            <NotificationDropdown onNotificationClick={handleRecruiterNotificationClick} />
+
+                            {/* Theme Toggle Button (Light / Dark) */}
+                            <ThemeToggle />
+
+                            <button type="button" onClick={() => setShowComposer(true)} className="btn-header-primary inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-white transition hover:opacity-90 shadow-sm">
                                 <Plus size={14} />
                                 Create Job
                             </button>
-                            <button type="button" onClick={handleLogout} className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 xl:inline-flex">
+                            <button type="button" onClick={handleLogout} className="glass-box hidden items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold transition hover:bg-white/20 xl:inline-flex">
                                 <LogOut size={14} />
                                 Log out
                             </button>
@@ -422,11 +450,11 @@ export default function RecruiterDashboard() {
                 <main className="p-4 sm:p-6 pb-24 lg:pb-6">
                     {activeView === 'Overview' && (
                         <>
-                            <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+                            <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Recruiting dashboard</div>
-                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Good morning, {user.name || 'Recruiter'}</h1>
-                                    <p className="mt-2 text-sm text-slate-500">Track your hiring activity and candidate pipeline.</p>
+                                    <h1 className="text-[28px] font-bold tracking-[-0.05em] text-white">Good morning, {user.name || 'Recruiter'}</h1>
+                                    <p className="mt-2 text-sm text-slate-300">Track your hiring activity and candidate pipeline.</p>
                                 </div>
                                 <button type="button" onClick={() => setShowComposer(true)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500">
                                     <Plus size={15} />
@@ -434,40 +462,48 @@ export default function RecruiterDashboard() {
                                 </button>
                             </div>
 
-                            <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                                <div className="grid divide-x divide-slate-200 md:grid-cols-4">
+                            <div className="glass-container mb-6 overflow-hidden rounded-2xl">
+                                <div className="grid divide-x divide-white/10 md:grid-cols-4">
                                     {stats.map((stat) => (
-                                        <div key={stat.label} className="px-4 py-4">
+                                        <div key={stat.label} className="px-5 py-4">
                                             <div className="mb-3 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                                                 <span>{stat.label}</span>
-                                                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${stat.tone === 'indigo' ? 'bg-indigo-50 text-indigo-700' : stat.tone === 'emerald' ? 'bg-emerald-50 text-emerald-700' : stat.tone === 'violet' ? 'bg-violet-50 text-violet-700' : 'bg-amber-50 text-amber-700'}`}>
+                                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                                                    stat.tone === 'indigo'
+                                                        ? 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30'
+                                                        : stat.tone === 'emerald'
+                                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                                                        : stat.tone === 'violet'
+                                                        ? 'bg-purple-500/20 text-purple-300 border-purple-400/30'
+                                                        : 'bg-amber-500/20 text-amber-300 border-amber-400/30'
+                                                }`}>
                                                     {stat.detail}
                                                 </span>
                                             </div>
-                                            <div className="text-[28px] font-semibold tracking-[-0.06em] text-slate-900">{stat.value}</div>
+                                            <div className="text-[32px] font-bold tracking-[-0.06em] text-white">{stat.value}</div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
                             <div className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
-                                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                <div className="glass-container rounded-2xl p-5">
                                     <div className="mb-5 flex items-center justify-between gap-3">
                                         <div>
                                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Hiring pipeline</div>
-                                            <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-slate-900">Candidate funnel</h2>
+                                            <h2 className="mt-1 text-xl font-bold tracking-[-0.04em] text-white">Candidate funnel</h2>
                                         </div>
-                                        <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600">This month <ChevronDown size={14} /></button>
+                                        <button type="button" className="glass-box inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-medium text-white">This month <ChevronDown size={14} /></button>
                                     </div>
 
                                     <div className="grid gap-4 md:grid-cols-3">
                                         {stageGroups.slice(0, 3).map((group) => (
-                                            <div key={group.stage} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                            <div key={group.stage} className="glass-box glass-component rounded-2xl p-4">
                                                 <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                                                     <span>{group.stage}</span>
-                                                    <span className="rounded-full bg-white px-2 py-1 text-[10px] text-slate-600">{group.count}</span>
+                                                    <span className="rounded-full bg-white/15 px-2 py-1 text-[10px] font-bold text-white">{group.count}</span>
                                                 </div>
-                                                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                                                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                                                     <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.min(group.count * 12, 100)}%` }} />
                                                 </div>
                                             </div>
@@ -475,25 +511,25 @@ export default function RecruiterDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                <div className="glass-container rounded-2xl p-5">
                                     <div className="mb-4 flex items-center justify-between">
                                         <div>
                                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Today</div>
-                                            <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-slate-900">Interview schedule</h2>
+                                            <h2 className="mt-1 text-xl font-bold tracking-[-0.04em] text-white">Interview schedule</h2>
                                         </div>
-                                        <CalendarClock size={18} className="text-indigo-500" />
+                                        <CalendarClock size={18} className="text-indigo-400" />
                                     </div>
                                     {todayInterviews.length === 0 ? (
-                                        <p className="text-sm text-slate-500">No interviews scheduled for today.</p>
+                                        <p className="text-sm text-slate-400">No interviews scheduled for today.</p>
                                     ) : (
                                         <div className="space-y-3">
                                             {todayInterviews.map((interview) => (
-                                                <button key={interview._id} type="button" onClick={() => openCandidateProfile(interview)} className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
+                                                <button key={interview._id} type="button" onClick={() => openCandidateProfile(interview)} className="glass-box flex w-full items-center justify-between rounded-xl p-3 text-left transition hover:bg-white/15">
                                                     <span>
-                                                        <span className="block text-sm font-semibold text-slate-800">{interview.applicantId?.name || 'Unnamed applicant'}</span>
-                                                        <span className="block text-xs text-slate-500">{interview.jobId?.title || 'Job unavailable'} · {interview.interviewLocation || 'Location not set'}</span>
+                                                        <span className="block text-sm font-bold text-white">{interview.applicantId?.name || 'Unnamed applicant'}</span>
+                                                        <span className="block text-xs text-slate-300">{interview.jobId?.title || 'Job unavailable'} · {interview.interviewLocation || 'Location not set'}</span>
                                                     </span>
-                                                    <span className="text-xs font-semibold text-indigo-600">{new Date(interview.interviewScheduledAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                                                    <span className="text-xs font-bold text-indigo-300">{new Date(interview.interviewScheduledAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                                                 </button>
                                             ))}
                                         </div>
@@ -505,13 +541,13 @@ export default function RecruiterDashboard() {
 
                     {activeView === 'Jobs' && (
                         <div>
-                            <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+                            <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Openings</div>
-                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Jobs</h1>
-                                    <p className="mt-2 text-sm text-slate-500">Manage your open positions and hiring activity.</p>
+                                    <h1 className="text-[28px] font-bold tracking-[-0.05em] text-white">Jobs</h1>
+                                    <p className="mt-2 text-sm text-slate-300">Manage your open positions and hiring activity.</p>
                                 </div>
-                                <button type="button" onClick={() => setShowComposer(true)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500">
+                                <button type="button" onClick={() => setShowComposer(true)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 shadow-sm">
                                     <Plus size={15} />
                                     Create Job
                                 </button>
@@ -520,11 +556,11 @@ export default function RecruiterDashboard() {
                             <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="relative max-w-md flex-1">
                                     <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input placeholder="Search jobs..." className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-200" />
+                                    <input placeholder="Search jobs..." className="glass-input w-full rounded-xl py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400" />
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {['ALL', 'ACTIVE', 'DRAFT', 'CLOSED'].map((filter) => (
-                                        <button key={filter} type="button" onClick={() => setJobStatusFilter(filter)} className={`rounded-xl px-3 py-2 text-[12px] font-medium transition ${jobStatusFilter === filter ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}>
+                                        <button key={filter} type="button" onClick={() => setJobStatusFilter(filter)} className={`rounded-xl px-3.5 py-2 text-[12px] font-medium transition ${jobStatusFilter === filter ? 'bg-indigo-600 text-white font-bold shadow-sm' : 'glass-box text-slate-300 hover:bg-white/15 hover:text-white'}`}>
                                             {filter === 'ALL' ? 'All' : filter.charAt(0) + filter.slice(1).toLowerCase()}
                                         </button>
                                     ))}
@@ -532,53 +568,55 @@ export default function RecruiterDashboard() {
                             </div>
 
                             {visibleJobs.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
-                                    <p className="text-sm text-slate-500">No job listings yet. Create your first opening to start hiring.</p>
+                                <div className="glass-container rounded-2xl p-8 text-center">
+                                    <p className="text-sm text-slate-300">No job listings yet. Create your first opening to start hiring.</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
                                     {visibleJobs.map((job) => {
                                         const jobApplications = applications.filter((application) => application.jobId?._id === job._id || application.jobId === job._id);
                                         const interviewCount = jobApplications.filter((application) => application.status === 'Interviewing').length;
-                                        return <button key={job._id} type="button" onClick={() => openJobDetail(job)} className="flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50 sm:flex-row sm:items-center">
-                                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
-                                                <Building2 size={17} />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="truncate text-[15px] font-semibold text-slate-800">{job.title}</div>
-                                                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ring-1 ${job.status === 'CLOSED' ? 'bg-slate-100 text-slate-600 ring-slate-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-100'}`}>{job.status === 'CLOSED' ? 'Closed' : 'Active'}</span>
+                                        return (
+                                            <button key={job._id} type="button" onClick={() => openJobDetail(job)} className="glass-box flex w-full flex-col gap-3 rounded-2xl p-4 text-left transition hover:bg-white/15 sm:flex-row sm:items-center">
+                                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                                                    <Building2 size={17} />
                                                 </div>
-                                                <div className="mt-1 text-[12px] text-slate-500">{job.department} · {job.location} · {job.employmentType || 'Employment type unavailable'}</div>
-                                                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{job.description || 'No job description provided.'}</p>
-                                            </div>
-                                            <div className="hidden min-w-[180px] text-left md:block">
-                                                <div className="text-[12px] text-slate-500">Hiring manager</div>
-                                                <div className="text-sm font-medium text-slate-700">{job.postedBy?.name || user.name || 'Recruiter'}</div>
-                                            </div>
-                                            <div className="hidden min-w-[110px] text-left md:block">
-                                                <div className="text-[12px] text-slate-500">Candidates</div>
-                                                <div className="text-sm font-semibold text-slate-800">{jobApplications.length}</div>
-                                            </div>
-                                            <div className="hidden min-w-[120px] text-left lg:block">
-                                                <div className="text-[12px] text-slate-500">Progress</div>
-                                                <div className="text-sm font-medium text-slate-700">{interviewCount} interviewing</div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="hidden text-[12px] text-slate-500 xl:block">{job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Date unavailable'}</div>
-                                                <button
-                                                    type="button"
-                                                    title="Delete job posting"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setJobToDelete(job);
-                                                    }}
-                                                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            </div>
-                                        </button>;
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="truncate text-[15px] font-bold text-white">{job.title}</div>
+                                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold border ${job.status === 'CLOSED' ? 'bg-slate-700/60 text-slate-300 border-slate-600' : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'}`}>{job.status === 'CLOSED' ? 'Closed' : 'Active'}</span>
+                                                    </div>
+                                                    <div className="mt-1 text-[12px] text-slate-300">{job.department} · {job.location} · {job.employmentType || 'Employment type unavailable'}</div>
+                                                    <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-300">{job.description || 'No job description provided.'}</p>
+                                                </div>
+                                                <div className="hidden min-w-[180px] text-left md:block">
+                                                    <div className="text-[12px] text-slate-400">Hiring manager</div>
+                                                    <div className="text-sm font-semibold text-white">{job.postedBy?.name || user.name || 'Recruiter'}</div>
+                                                </div>
+                                                <div className="hidden min-w-[110px] text-left md:block">
+                                                    <div className="text-[12px] text-slate-400">Candidates</div>
+                                                    <div className="text-sm font-bold text-white">{jobApplications.length}</div>
+                                                </div>
+                                                <div className="hidden min-w-[120px] text-left lg:block">
+                                                    <div className="text-[12px] text-slate-400">Progress</div>
+                                                    <div className="text-sm font-semibold text-indigo-300">{interviewCount} interviewing</div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="hidden text-[12px] text-slate-400 xl:block">{job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Date unavailable'}</div>
+                                                    <button
+                                                        type="button"
+                                                        title="Delete job posting"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setJobToDelete(job);
+                                                        }}
+                                                        className="glass-box flex h-9 w-9 items-center justify-center rounded-xl text-slate-300 transition hover:bg-rose-500/20 hover:text-rose-300"
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                </div>
+                                            </button>
+                                        );
                                     })}
                                 </div>
                             )}
@@ -587,20 +625,20 @@ export default function RecruiterDashboard() {
 
                     {activeView === 'JobDetail' && selectedJob && (
                         <div>
-                            <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+                            <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Job detail</div>
-                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{selectedJob.title}</h1>
-                                    <p className="mt-2 text-sm text-slate-500">{selectedJob.department} · {selectedJob.location} · {selectedJob.status || 'ACTIVE'}</p>
+                                    <h1 className="text-[28px] font-bold tracking-[-0.05em] text-white">{selectedJob.title}</h1>
+                                    <p className="mt-2 text-sm text-slate-300">{selectedJob.department} · {selectedJob.location} · {selectedJob.status || 'ACTIVE'}</p>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Edit</button>
-                                    <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Share</button>
-                                    <button type="button" onClick={() => handleJobStatusChange(selectedJob)} className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">{selectedJob.status === 'CLOSED' ? 'Reopen hiring' : 'Pause hiring'}</button>
+                                    <button type="button" className="glass-box rounded-xl px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20">Edit</button>
+                                    <button type="button" className="glass-box rounded-xl px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20">Share</button>
+                                    <button type="button" onClick={() => handleJobStatusChange(selectedJob)} className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">{selectedJob.status === 'CLOSED' ? 'Reopen hiring' : 'Pause hiring'}</button>
                                     <button
                                         type="button"
                                         onClick={() => setJobToDelete(selectedJob)}
-                                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 hover:border-rose-300"
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/20 px-3 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/30"
                                     >
                                         <Trash2 size={14} />
                                         <span>Delete Job</span>
@@ -617,73 +655,73 @@ export default function RecruiterDashboard() {
                                     { label: 'Offer', value: selectedJobApplications.filter((application) => application.status === 'Offered').length },
                                     { label: 'Rejected', value: selectedJobApplications.filter((application) => application.status === 'Rejected').length },
                                 ].map((metric) => (
-                                    <div key={metric.label} className="rounded-2xl border border-slate-200 bg-white p-4">
+                                    <div key={metric.label} className="glass-box rounded-2xl p-4">
                                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{metric.label}</div>
-                                        <div className="mt-3 text-[26px] font-semibold tracking-[-0.05em] text-slate-900">{metric.value}</div>
+                                        <div className="mt-3 text-[26px] font-bold tracking-[-0.05em] text-white">{metric.value}</div>
                                     </div>
                                 ))}
                             </div>
 
                             <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
                                 <div className="space-y-6">
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                    <div className="glass-container rounded-2xl p-5">
                                         <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Job description</div>
-                                        <p className="text-sm leading-7 text-slate-600">{selectedJob.description}</p>
+                                        <p className="text-sm leading-7 text-slate-200">{selectedJob.description}</p>
                                     </div>
 
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                    <div className="glass-container rounded-2xl p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Requirements</div>
                                         {selectedJob.requirements?.length ? (
-                                            <ul className="space-y-3 text-sm text-slate-600">
+                                            <ul className="space-y-3 text-sm text-slate-200">
                                                 {selectedJob.requirements.map((item) => (
-                                                    <li key={item} className="flex items-start gap-3"><span className="mt-1 h-2 w-2 rounded-full bg-indigo-500" /> {item}</li>
+                                                    <li key={item} className="flex items-start gap-3"><span className="mt-1.5 h-2 w-2 rounded-full bg-indigo-400" /> {item}</li>
                                                 ))}
                                             </ul>
                                         ) : (
-                                            <p className="text-sm text-slate-500">No requirements listed.</p>
+                                            <p className="text-sm text-slate-400">No requirements listed.</p>
                                         )}
                                     </div>
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                    <div className="glass-container rounded-2xl p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Hiring team</div>
                                         <div className="space-y-3">
                                             {selectedJob.postedBy ? (
-                                                <div key={selectedJob.postedBy._id || selectedJob.postedBy.email || selectedJob.postedBy.name} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                                                <div key={selectedJob.postedBy._id || selectedJob.postedBy.email || selectedJob.postedBy.name} className="glass-box glass-component flex items-center justify-between rounded-xl px-3 py-2.5">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-semibold text-indigo-700">{(selectedJob.postedBy.name || 'R').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</div>
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">{(selectedJob.postedBy.name || 'R').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</div>
                                                         <div>
-                                                            <div className="text-sm font-semibold text-slate-800">{selectedJob.postedBy.name}</div>
-                                                            <div className="text-[11px] text-slate-500">Job owner</div>
+                                                            <div className="text-sm font-bold text-white">{selectedJob.postedBy.name}</div>
+                                                            <div className="text-[11px] text-slate-300">Job owner</div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <p className="text-sm text-slate-500">No hiring team data available.</p>
+                                                <p className="text-sm text-slate-400">No hiring team data available.</p>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                    <div className="glass-container rounded-2xl p-5">
                                         <div className="mb-4 flex items-center justify-between gap-3">
                                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidates</div>
-                                            <span className="text-xs text-slate-500">{selectedJobApplications.length} total</span>
+                                            <span className="text-xs text-slate-300">{selectedJobApplications.length} total</span>
                                         </div>
                                         {selectedJobApplications.length ? selectedJobApplications.map((application) => (
-                                            <div key={application._id} className="flex items-center justify-between gap-3 border-t border-slate-100 py-3 first:border-t-0 first:pt-0">
+                                            <div key={application._id} className="flex items-center justify-between gap-3 border-t border-white/10 py-3 first:border-t-0 first:pt-0">
                                                 <div className="min-w-0">
-                                                    <div className="truncate text-sm font-semibold text-slate-800">{application.applicantId?.name || 'Unnamed applicant'}</div>
-                                                    <div className="text-xs text-slate-500">{application.status || 'Applied'}</div>
+                                                    <div className="truncate text-sm font-bold text-white">{application.applicantId?.name || 'Unnamed applicant'}</div>
+                                                    <div className="text-xs text-slate-300">{application.status || 'Applied'}</div>
                                                 </div>
                                                 {application.resumeUrl ? (
-                                                    <a href={application.resumeUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-lg bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100">View Resume</a>
+                                                    <a href={application.resumeUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-lg bg-indigo-500/20 border border-indigo-400/30 px-3 py-1 text-xs font-bold text-indigo-300 transition hover:bg-indigo-500/30">View Resume</a>
                                                 ) : (
                                                     <span className="shrink-0 text-xs text-slate-400">No Resume</span>
                                                 )}
                                             </div>
                                         )) : (
-                                            <p className="text-sm text-slate-500">No candidates have applied yet.</p>
+                                            <p className="text-sm text-slate-400">No candidates have applied yet.</p>
                                         )}
                                     </div>
                                 </div>
@@ -693,20 +731,20 @@ export default function RecruiterDashboard() {
 
                     {activeView === 'Pipeline' && (
                         <div>
-                            <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+                            <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidate pipeline</div>
-                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{selectedJob?.title || 'Select a job'}</h1>
-                                    <p className="mt-2 text-sm text-slate-500">{selectedJob ? `${selectedJob.department} · ${selectedJob.location} · ${selectedJob.status}` : 'Choose a real job to view its pipeline.'}</p>
+                                    <h1 className="text-[28px] font-bold tracking-[-0.05em] text-white">{selectedJob?.title || 'Select a job'}</h1>
+                                    <p className="mt-2 text-sm text-slate-300">{selectedJob ? `${selectedJob.department} · ${selectedJob.location} · ${selectedJob.status}` : 'Choose a real job to view its pipeline.'}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <select value={pipelineJobFilter} onChange={(event) => setPipelineJobFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                                    <select value={pipelineJobFilter} onChange={(event) => setPipelineJobFilter(event.target.value)} className="glass-input rounded-xl px-3 py-2 text-sm text-white outline-none">
                                         <option value="">All jobs</option>
                                         {jobs.map((job) => <option key={job._id} value={job._id}>{job.title}</option>)}
                                     </select>
-                                    <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Edit</button>
-                                    <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Share</button>
-                                    <button type="button" className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Pause hiring</button>
+                                    <button type="button" className="glass-box rounded-xl px-3 py-2 text-sm font-medium text-white hover:bg-white/20">Edit</button>
+                                    <button type="button" className="glass-box rounded-xl px-3 py-2 text-sm font-medium text-white hover:bg-white/20">Share</button>
+                                    <button type="button" className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Pause hiring</button>
                                 </div>
                             </div>
 
@@ -719,9 +757,9 @@ export default function RecruiterDashboard() {
                                     ['Rejected', applications.filter((app) => app.status === 'Rejected').length],
                                     ['Hired', applications.filter((app) => app.status === 'Hired').length],
                                 ].map(([label, value]) => (
-                                    <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
+                                    <div key={label} className="glass-box rounded-2xl p-4">
                                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</div>
-                                        <div className="mt-3 text-[26px] font-semibold tracking-[-0.05em] text-slate-900">{value}</div>
+                                        <div className="mt-3 text-[26px] font-bold tracking-[-0.05em] text-white">{value}</div>
                                     </div>
                                 ))}
                             </div>
@@ -731,7 +769,7 @@ export default function RecruiterDashboard() {
                                     {pipelineStages.map((stage) => {
                                         const items = stageGroups.find((group) => group.stage === stage)?.items || [];
                                         return (
-                                            <div key={stage} className="rounded-2xl border border-slate-200 bg-slate-50 p-3" onDragOver={(e) => e.preventDefault()} onDrop={(e) => {
+                                            <div key={stage} className="glass-container rounded-2xl p-3" onDragOver={(e) => e.preventDefault()} onDrop={(e) => {
                                                 e.preventDefault();
                                                 const id = e.dataTransfer.getData('applicationId');
                                                 const app = applications.find((item) => item._id === id);
@@ -741,39 +779,39 @@ export default function RecruiterDashboard() {
                                                 }
                                             }}>
                                                 <div className="mb-3 flex items-center justify-between gap-2">
-                                                    <div className="text-sm font-semibold text-slate-800">{stage}</div>
-                                                    <div className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 ring-1 ring-slate-200">{items.length}</div>
+                                                    <div className="text-sm font-bold text-white">{stage}</div>
+                                                    <div className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white">{items.length}</div>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {items.length === 0 ? (
-                                                        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center text-[12px] text-slate-400">No candidates</div>
+                                                        <div className="glass-box rounded-2xl p-4 text-center text-[12px] text-slate-400">No candidates</div>
                                                     ) : (
                                                         items.map((item) => {
                                                             const candidateName = item.applicantId?.name || 'Unnamed applicant';
                                                             const role = item.jobId?.title || 'Untitled role';
                                                             return (
-                                                                <div key={item._id} draggable onDragStart={(e) => e.dataTransfer.setData('applicationId', item._id)} onClick={() => openCandidateProfile(item)} className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
+                                                                <div key={item._id} draggable onDragStart={(e) => e.dataTransfer.setData('applicationId', item._id)} onClick={() => openCandidateProfile(item)} className="glass-box cursor-pointer rounded-2xl p-3 transition hover:bg-white/20">
                                                                     <div className="mb-3 flex items-start justify-between gap-2">
                                                                         <div className="flex items-center gap-3">
-                                                                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-semibold text-indigo-700">{candidateName.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div>
+                                                                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">{candidateName.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div>
                                                                             <div>
-                                                                                <div className="text-sm font-semibold text-slate-800">{candidateName}</div>
-                                                                                <div className="text-[11px] text-slate-500">{role}</div>
+                                                                                <div className="text-sm font-bold text-white">{candidateName}</div>
+                                                                                <div className="text-[11px] text-slate-300">{role}</div>
                                                                             </div>
                                                                         </div>
-                                                                        <span className={`shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold shadow-2xs ${
+                                                                        <span className={`shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold shadow-xs ${
                                                                             (item.match?.matchScore ?? 0) >= 80
-                                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40'
                                                                                 : (item.match?.matchScore ?? 0) >= 50
-                                                                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                                                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                                                ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/40'
+                                                                                : 'bg-amber-500/20 text-amber-200 border-amber-400/40'
                                                                         }`}>
-                                                                            <Sparkles size={10} className={(item.match?.matchScore ?? 0) >= 80 ? 'text-emerald-600' : 'text-indigo-600'} />
+                                                                            <Sparkles size={10} className={(item.match?.matchScore ?? 0) >= 80 ? 'text-emerald-300' : 'text-indigo-300'} />
                                                                             <span>{item.match?.matchScore ?? 0}% Fit</span>
                                                                         </span>
                                                                     </div>
 
-                                                                    <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-500">
+                                                                    <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-300">
                                                                         <span className="inline-flex items-center gap-1"><BriefcaseBusiness size={11} /> {role}</span>
                                                                         <span className="inline-flex items-center gap-1"><MapPin size={11} /> {item.jobId?.location || 'Location unavailable'}</span>
                                                                     </div>
@@ -786,8 +824,8 @@ export default function RecruiterDashboard() {
                                                                                     key={skill}
                                                                                     className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                                                                                         isMatched
-                                                                                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold'
-                                                                                            : 'bg-slate-100 text-slate-600'
+                                                                                            ? 'bg-indigo-500/30 text-indigo-200 border border-indigo-400/40 font-semibold'
+                                                                                            : 'glass-pill text-white'
                                                                                     }`}
                                                                                 >
                                                                                     {isMatched ? '✓ ' : ''}{skill}
@@ -795,20 +833,20 @@ export default function RecruiterDashboard() {
                                                                             );
                                                                         })}
                                                                         {((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).length > 4 && (
-                                                                            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+                                                                            <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
                                                                                 +{((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).length - 4}
                                                                             </span>
                                                                         )}
                                                                     </div>
 
-                                                                    <div className="mb-3 border-t border-slate-200 pt-3">
+                                                                    <div className="mb-3 border-t border-white/10 pt-3">
                                                                         {item.resumeUrl ? (
                                                                             <a
                                                                                 href={item.resumeUrl}
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
                                                                                 onClick={(event) => event.stopPropagation()}
-                                                                                className="inline-flex items-center space-x-1 rounded-lg bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100"
+                                                                                className="inline-flex items-center space-x-1 rounded-lg bg-indigo-500/20 border border-indigo-400/30 px-3 py-1 text-xs font-bold text-indigo-300 transition hover:bg-indigo-500/30"
                                                                             >
                                                                                 <span>View Resume</span>
                                                                             </a>
@@ -817,7 +855,7 @@ export default function RecruiterDashboard() {
                                                                         )}
                                                                     </div>
 
-                                                                    <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-[11px] text-slate-500">
+                                                                    <div className="flex items-center justify-between border-t border-white/10 pt-2 text-[11px] text-slate-400">
                                                                         <span>{stage}</span>
                                                                         <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Date unavailable'}</span>
                                                                     </div>
@@ -836,33 +874,33 @@ export default function RecruiterDashboard() {
 
                     {activeView === 'CandidateProfile' && selectedCandidate && (
                         <div>
-                            <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+                            <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-lg font-semibold text-indigo-700">
+                                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-400/30 bg-indigo-500/20 text-lg font-semibold text-indigo-300 shadow-sm">
                                         {(selectedCandidate.applicantId?.name || 'Unnamed applicant').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
                                     </div>
                                     <div>
                                         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidate profile</div>
-                                        <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{selectedCandidate.applicantId?.name || 'Unnamed applicant'}</h1>
-                                        <p className="mt-2 text-sm text-slate-500">{selectedCandidate.jobId?.title || 'Untitled role'}</p>
+                                        <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-white">{selectedCandidate.applicantId?.name || 'Unnamed applicant'}</h1>
+                                        <p className="mt-1 text-sm text-slate-300">{selectedCandidate.jobId?.title || 'Untitled role'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Move Stage</button>
-                                    <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Schedule Interview</button>
-                                    <button type="button" className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Send Email</button>
+                                    <button type="button" className="rounded-xl glass-pill px-3 py-2 text-sm font-medium text-white hover:bg-white/15 transition">Move Stage</button>
+                                    <button type="button" className="rounded-xl glass-pill px-3 py-2 text-sm font-medium text-white hover:bg-white/15 transition">Schedule Interview</button>
+                                    <button type="button" className="rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition">Send Email</button>
                                 </div>
                             </div>
 
-                            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5">
+                            <div className="mb-6 rounded-2xl glass-container p-5">
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                    <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-                                        <span className="flex items-center gap-2"><UserRound size={14} /> {selectedCandidate.applicantId?.email || 'Email unavailable'}</span>
-                                        <span className="flex items-center gap-2"><BriefcaseBusiness size={14} /> {selectedCandidate.jobId?.department || 'Department unavailable'}</span>
-                                        <span className="flex items-center gap-2"><MapPin size={14} /> {selectedCandidate.jobId?.location || 'Location unavailable'}</span>
+                                    <div className="flex flex-wrap gap-4 text-sm text-slate-300">
+                                        <span className="flex items-center gap-2"><UserRound size={14} className="text-indigo-400" /> {selectedCandidate.applicantId?.email || 'Email unavailable'}</span>
+                                        <span className="flex items-center gap-2"><BriefcaseBusiness size={14} className="text-indigo-400" /> {selectedCandidate.jobId?.department || 'Department unavailable'}</span>
+                                        <span className="flex items-center gap-2"><MapPin size={14} className="text-indigo-400" /> {selectedCandidate.jobId?.location || 'Location unavailable'}</span>
                                     </div>
-                                    <select value={selectedCandidate.status || 'Applied'} onChange={(event) => handleStatusChange(selectedCandidate._id, event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-                                        {['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'Offered', 'Hired', 'Rejected'].map((status) => <option key={status} value={status}>{status}</option>)}
+                                    <select value={selectedCandidate.status || 'Applied'} onChange={(event) => handleStatusChange(selectedCandidate._id, event.target.value)} className="glass-input rounded-xl px-3 py-2 text-sm font-semibold text-white">
+                                        {['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'Offered', 'Hired', 'Rejected'].map((status) => <option key={status} value={status} className="bg-slate-900 text-white">{status}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -874,20 +912,22 @@ export default function RecruiterDashboard() {
                                         candidateId={selectedCandidate.applicantId?._id || selectedCandidate.applicantId}
                                     />
 
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                    <div className="rounded-2xl glass-container p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Resume</div>
                                         {selectedCandidate.resumeUrl ? (
-                                            <a href={selectedCandidate.resumeUrl} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50">Open submitted resume</a>
+                                            <a href={selectedCandidate.resumeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/20 px-3.5 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-500/30 transition">
+                                                <span>Open submitted resume</span>
+                                            </a>
                                         ) : (
-                                            <p className="text-sm text-slate-500">No resume was submitted with this application.</p>
+                                            <p className="text-sm text-slate-400">No resume was submitted with this application.</p>
                                         )}
                                     </div>
 
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                    <div className="rounded-2xl glass-container p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidate Skills & Match Fit</div>
                                         
                                         <div className="mb-4">
-                                            <div className="mb-2 text-xs font-semibold text-slate-600">Candidate's Stated Skills:</div>
+                                            <div className="mb-2 text-xs font-semibold text-slate-300">Candidate's Stated Skills:</div>
                                             {selectedCandidate.candidateProfile?.skills?.length ? (
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {selectedCandidate.candidateProfile.skills.map((skill) => {
@@ -897,10 +937,10 @@ export default function RecruiterDashboard() {
                                                         return (
                                                             <span
                                                                 key={skill}
-                                                                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                                                                className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
                                                                     isMatched
-                                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold shadow-2xs'
-                                                                        : 'bg-slate-100 text-slate-700'
+                                                                        ? 'border border-indigo-400/40 bg-indigo-500/20 text-indigo-200 font-semibold shadow-xs'
+                                                                        : 'glass-pill text-white'
                                                                 }`}
                                                             >
                                                                 {isMatched ? '✓ ' : ''}{skill}
@@ -914,13 +954,13 @@ export default function RecruiterDashboard() {
                                         </div>
 
                                         {selectedCandidate.match?.missingSkills?.length > 0 && (
-                                            <div className="border-t border-slate-100 pt-3">
-                                                <div className="mb-2 text-xs font-semibold text-amber-700">
+                                            <div className="border-t border-white/10 pt-3">
+                                                <div className="mb-2 text-xs font-semibold text-amber-300">
                                                     Unmatched Role Requirements ({selectedCandidate.match.missingSkills.length}):
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {selectedCandidate.match.missingSkills.map((req) => (
-                                                        <span key={req} className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-medium text-amber-800">
+                                                        <span key={req} className="rounded-full border border-amber-400/30 bg-amber-500/20 px-2.5 py-1 text-[11px] font-medium text-amber-200">
                                                             {req}
                                                         </span>
                                                     ))}
@@ -937,18 +977,18 @@ export default function RecruiterDashboard() {
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                    <div className="rounded-2xl glass-container p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Schedule interview</div>
                                         <form onSubmit={(event) => scheduleInterview(selectedCandidate._id, event)} className="space-y-3">
-                                            <select name="round" defaultValue={selectedCandidate.interviewRound || 'Assessment'} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
-                                                <option value="Assessment">Round 1: Assessment</option>
-                                                <option value="Hiring Manager">Round 2: Hiring Manager</option>
-                                                <option value="HR">Round 3: HR</option>
+                                            <select name="round" defaultValue={selectedCandidate.interviewRound || 'Assessment'} className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white">
+                                                <option value="Assessment" className="bg-slate-900 text-white">Round 1: Assessment</option>
+                                                <option value="Hiring Manager" className="bg-slate-900 text-white">Round 2: Hiring Manager</option>
+                                                <option value="HR" className="bg-slate-900 text-white">Round 3: HR</option>
                                             </select>
-                                            <input name="scheduledAt" type="datetime-local" required className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700" />
-                                            <input name="location" placeholder="Interview link or location" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700" />
-                                            <textarea name="notes" rows={2} placeholder="Interview notes" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700" />
-                                            <button type="submit" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Schedule interview</button>
+                                            <input name="scheduledAt" type="datetime-local" required className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white" />
+                                            <input name="location" placeholder="Interview link or location" className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-400" />
+                                            <textarea name="notes" rows={2} placeholder="Interview notes" className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-400" />
+                                            <button type="submit" className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition">Schedule interview</button>
                                         </form>
                                     </div>
                                 </div>
@@ -958,32 +998,32 @@ export default function RecruiterDashboard() {
 
                     {activeView === 'Candidates' && (
                         <div>
-                            <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-end md:justify-between">
+                            <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
                                 <div>
                                     <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Talent pool</div>
-                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Candidates</h1>
+                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-white">Candidates</h1>
                                 </div>
-                                <select value={candidateJobFilter} onChange={(event) => setCandidateJobFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600">
-                                    <option value="">All jobs</option>
-                                    {jobs.map((job) => <option key={job._id} value={job._id}>{job.title}</option>)}
+                                <select value={candidateJobFilter} onChange={(event) => setCandidateJobFilter(event.target.value)} className="glass-input rounded-xl px-3 py-2.5 text-sm text-white">
+                                    <option value="" className="bg-slate-900 text-white">All jobs</option>
+                                    {jobs.map((job) => <option key={job._id} value={job._id} className="bg-slate-900 text-white">{job.title}</option>)}
                                 </select>
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                 {filteredCandidates.length === 0 ? (
-                                    <div className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center text-sm text-slate-500">No candidates in the pipeline yet.</div>
+                                    <div className="col-span-full rounded-2xl border border-dashed border-white/20 glass-box p-10 text-center text-sm text-slate-300">No candidates in the pipeline yet.</div>
                                 ) : (
                                     filteredCandidates.map((item) => {
                                         const name = item.applicantId?.name || 'Unnamed applicant';
                                         const email = item.applicantId?.email || 'Email unavailable';
                                         return (
-                                            <div key={item._id} onClick={() => openCandidateProfile(item)} className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50">
+                                            <div key={item._id} onClick={() => openCandidateProfile(item)} className="cursor-pointer rounded-2xl glass-box p-4 text-left transition hover:border-white/30 hover:bg-white/10 shadow-sm">
                                                 <div className="mb-3 flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700">{name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div>
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-indigo-400/30 bg-indigo-500/20 text-[11px] font-semibold text-indigo-300">{name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</div>
                                                         <div>
-                                                            <div className="text-sm font-semibold text-slate-800">{name}</div>
-                                                            <div className="text-[12px] text-slate-500">{email}</div>
+                                                            <div className="text-sm font-semibold text-white">{name}</div>
+                                                            <div className="text-[12px] text-slate-400">{email}</div>
                                                         </div>
                                                     </div>
                                                     <button
@@ -992,20 +1032,20 @@ export default function RecruiterDashboard() {
                                                             e.stopPropagation();
                                                             openCandidateProfile(item);
                                                         }}
-                                                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold border transition shadow-2xs ${
+                                                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold border transition shadow-xs ${
                                                             (item.match?.matchScore ?? 0) >= 80
-                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                                ? 'border-emerald-400/40 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
                                                                 : (item.match?.matchScore ?? 0) >= 50
-                                                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                                                                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                                ? 'border-indigo-400/40 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30'
+                                                                : 'border-amber-400/40 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
                                                         }`}
                                                         title="Click to view full match score breakdown"
                                                     >
-                                                        <Sparkles size={11} className={(item.match?.matchScore ?? 0) >= 80 ? 'text-emerald-600' : 'text-indigo-600'} />
+                                                        <Sparkles size={11} className={(item.match?.matchScore ?? 0) >= 80 ? 'text-emerald-300' : 'text-indigo-300'} />
                                                         <span>{item.match?.matchScore ?? 0}% Fit</span>
                                                     </button>
                                                 </div>
-                                                <div className="mb-3 flex items-center gap-2 text-[11px] text-slate-500">
+                                                <div className="mb-3 flex items-center gap-2 text-[11px] text-slate-300">
                                                     <span>{item.jobId?.title || 'Role unavailable'}</span>
                                                     <span>•</span>
                                                     <span>{item.jobId?.location || 'Location unavailable'}</span>
@@ -1016,10 +1056,10 @@ export default function RecruiterDashboard() {
                                                         return (
                                                             <span
                                                                 key={skill}
-                                                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium transition ${
                                                                     isMatched
-                                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold'
-                                                                        : 'bg-slate-100 text-slate-600'
+                                                                        ? 'border border-indigo-400/30 bg-indigo-500/20 text-indigo-200 font-semibold'
+                                                                        : 'glass-pill text-white'
                                                                 }`}
                                                             >
                                                                 {isMatched ? '✓ ' : ''}{skill}
@@ -1027,15 +1067,15 @@ export default function RecruiterDashboard() {
                                                         );
                                                     })}
                                                     {((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).length > 5 && (
-                                                        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+                                                        <span className="rounded-full glass-pill px-2 py-0.5 text-[10px] font-medium text-slate-300">
                                                             +{((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).length - 5}
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-                                                    <span className="text-[11px] text-slate-500">Candidate status</span>
-                                                    <select value={item.status || 'Applied'} onClick={(event) => event.stopPropagation()} onChange={(event) => { event.stopPropagation(); handleStatusChange(item._id, event.target.value); }} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
-                                                        {['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'Offered', 'Hired', 'Rejected'].map((status) => <option key={status} value={status}>{status}</option>)}
+                                                <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                                                    <span className="text-[11px] text-slate-400">Candidate status</span>
+                                                    <select value={item.status || 'Applied'} onClick={(event) => event.stopPropagation()} onChange={(event) => { event.stopPropagation(); handleStatusChange(item._id, event.target.value); }} className="glass-input rounded-lg px-2 py-1 text-xs font-semibold text-white">
+                                                        {['Applied', 'Screening', 'Shortlisted', 'Interviewing', 'Offered', 'Hired', 'Rejected'].map((status) => <option key={status} value={status} className="bg-slate-900 text-white">{status}</option>)}
                                                     </select>
                                                 </div>
                                             </div>
@@ -1048,22 +1088,22 @@ export default function RecruiterDashboard() {
 
                     {activeView === 'Interviews' && (
                         <div>
-                            <div className="mb-6 border-b border-slate-200 pb-5">
+                            <div className="mb-6 border-b border-white/10 pb-5">
                                 <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Recruiter calendar</div>
-                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Interviews</h1>
-                                <p className="mt-2 text-sm text-slate-500">Scheduled interviews across your hiring pipeline.</p>
+                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-white">Interviews</h1>
+                                <p className="mt-2 text-sm text-slate-300">Scheduled interviews across your hiring pipeline.</p>
                             </div>
                             {applications.filter((application) => application.interviewScheduledAt).length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center text-sm text-slate-500">No interviews scheduled.</div>
+                                <div className="rounded-2xl border border-dashed border-white/20 glass-box p-10 text-center text-sm text-slate-300">No interviews scheduled.</div>
                             ) : (
                                 <div className="space-y-3">
                                     {applications.filter((application) => application.interviewScheduledAt).sort((left, right) => new Date(left.interviewScheduledAt) - new Date(right.interviewScheduledAt)).map((interview) => (
-                                        <button key={interview._id} type="button" onClick={() => openCandidateProfile(interview)} className="flex w-full flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-indigo-200 hover:bg-indigo-50/30 sm:flex-row sm:items-center sm:justify-between">
+                                        <button key={interview._id} type="button" onClick={() => openCandidateProfile(interview)} className="flex w-full flex-col gap-2 rounded-2xl glass-box p-4 text-left transition hover:border-indigo-400/40 hover:bg-white/10 sm:flex-row sm:items-center sm:justify-between">
                                             <div>
-                                                <div className="text-sm font-semibold text-slate-800">{interview.applicantId?.name || 'Unnamed applicant'}</div>
-                                                <div className="mt-1 text-xs text-slate-500">{interview.jobId?.title || 'Job unavailable'} · {interview.interviewLocation || 'Location not set'}</div>
+                                                <div className="text-sm font-semibold text-white">{interview.applicantId?.name || 'Unnamed applicant'}</div>
+                                                <div className="mt-1 text-xs text-slate-300">{interview.jobId?.title || 'Job unavailable'} · {interview.interviewLocation || 'Location not set'}</div>
                                             </div>
-                                            <div className="text-sm font-semibold text-indigo-600">{new Date(interview.interviewScheduledAt).toLocaleString()}</div>
+                                            <div className="text-sm font-semibold text-indigo-300">{new Date(interview.interviewScheduledAt).toLocaleString()}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -1073,69 +1113,69 @@ export default function RecruiterDashboard() {
 
                     {activeView === 'Team' && (
                         <div>
-                            <div className="mb-6 border-b border-slate-200 pb-5">
+                            <div className="mb-6 border-b border-white/10 pb-5">
                                 <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</div>
-                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Hiring team</h1>
-                                <p className="mt-2 text-sm text-slate-500">Manage the people who collaborate on your open roles.</p>
+                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-white">Hiring team</h1>
+                                <p className="mt-2 text-sm text-slate-300">Manage the people who collaborate on your open roles.</p>
                             </div>
-                            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <div className="rounded-2xl glass-container p-5">
                                 <div className="space-y-3">
                                     {[user.name || 'Recruiter'].map((person, index) => (
-                                        <div key={person} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                        <div key={person} className="flex items-center justify-between rounded-xl glass-box glass-component border-white/10 px-4 py-3">
                                             <div className="flex items-center gap-3">
-                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">{person.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</div>
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-indigo-400/30 bg-indigo-500/20 text-xs font-semibold text-indigo-300">{person.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</div>
                                                 <div>
-                                                    <div className="text-sm font-semibold text-slate-800">{person}</div>
-                                                    <div className="text-[12px] text-slate-500">{index === 0 ? 'Workspace owner' : index === 3 ? 'Hiring manager' : 'Recruiter'}</div>
+                                                    <div className="text-sm font-semibold text-white">{person}</div>
+                                                    <div className="text-[12px] text-slate-400">{index === 0 ? 'Workspace owner' : index === 3 ? 'Hiring manager' : 'Recruiter'}</div>
                                                 </div>
                                             </div>
-                                            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">Active</span>
+                                            <span className="rounded-full border border-emerald-400/30 bg-emerald-500/20 px-2.5 py-1 text-[10px] font-semibold text-emerald-300">Active</span>
                                         </div>
                                     ))}
                                 </div>
-                                <button type="button" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white"><Plus size={15} /> Invite teammate</button>
+                                <button type="button" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition"><Plus size={15} /> Invite teammate</button>
                             </div>
                         </div>
                     )}
 
                     {activeView === 'Settings' && (
                         <div>
-                            <div className="mb-6 border-b border-slate-200 pb-5">
+                            <div className="mb-6 border-b border-white/10 pb-5">
                                 <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</div>
-                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">Settings</h1>
-                                <p className="mt-2 text-sm text-slate-500">Configure your workspace preferences.</p>
+                                <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-white">Settings</h1>
+                                <p className="mt-2 text-sm text-slate-300">Configure your workspace preferences.</p>
                             </div>
-                            <div className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-5">
+                            <div className="max-w-2xl rounded-2xl glass-container p-5">
                                 <div className="space-y-4">
                                     <label className="block">
-                                        <span className="mb-1.5 block text-sm font-medium text-slate-700">Workspace name</span>
-                                        <input defaultValue="Avant Labs" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <span className="mb-1.5 block text-sm font-medium text-slate-200">Workspace name</span>
+                                        <input defaultValue="Avant Labs" className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </label>
-                                    <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                    <label className="flex items-center justify-between rounded-xl glass-box border-white/10 p-3">
                                         <span>
-                                            <span className="block text-sm font-medium text-slate-800">Weekly hiring digest</span>
-                                            <span className="mt-1 block text-[12px] text-slate-500">Receive a summary of pipeline activity.</span>
+                                            <span className="block text-sm font-medium text-white">Weekly hiring digest</span>
+                                            <span className="mt-1 block text-[12px] text-slate-400">Receive a summary of pipeline activity.</span>
                                         </span>
-                                        <input type="checkbox" defaultChecked className="h-4 w-4 accent-indigo-600" />
+                                        <input type="checkbox" defaultChecked className="h-4 w-4 accent-indigo-500" />
                                     </label>
-                                    <button type="button" onClick={() => setMessage('Settings saved for this workspace.')} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Save changes</button>
+                                    <button type="button" onClick={() => setMessage('Settings saved for this workspace.')} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition">Save changes</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {message && (
-                        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</div>
+                        <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/20 px-3 py-2 text-sm text-emerald-200">{message}</div>
                     )}
                 </main>
             </div>
 
-            <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-2 backdrop-blur-lg lg:hidden">
+            <div className="fixed inset-x-0 bottom-0 z-30 border-t ats-header p-2 lg:hidden">
                 <div className="mx-auto grid max-w-md grid-cols-4 gap-2">
                     {['Overview', 'Jobs', 'Candidates', 'Pipeline'].map((item) => {
                         const Icon = item === 'Overview' ? Grid2x2 : item === 'Jobs' ? BriefcaseBusiness : item === 'Candidates' ? Users : FolderKanban;
                         return (
-                            <button key={item} type="button" onClick={() => setActiveView(item)} className={`flex flex-col items-center rounded-xl px-2 py-2 text-[11px] font-medium ${activeView === item ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500'}`}>
+                            <button key={item} type="button" onClick={() => setActiveView(item)} className={`flex flex-col items-center rounded-xl px-2 py-2 text-[11px] font-medium transition ${activeView === item ? 'border border-indigo-400/40 bg-indigo-500/20 text-indigo-200' : 'text-slate-400 hover:text-white'}`}>
                                 <Icon size={16} />
                                 <span className="mt-1">{item}</span>
                             </button>
@@ -1146,53 +1186,53 @@ export default function RecruiterDashboard() {
 
             <AnimatePresence>
                 {showComposer && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-                        <motion.div initial={{ y: 20, opacity: 0, scale: 0.98 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.98 }} className="w-full max-w-3xl rounded-[28px] border border-slate-200 bg-white p-5 shadow-soft">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+                        <motion.div initial={{ y: 20, opacity: 0, scale: 0.98 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.98 }} className="w-full max-w-3xl rounded-[28px] glass-container p-6 shadow-2xl border-white/20">
                             <div className="mb-5 flex items-center justify-between">
                                 <div>
                                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">New role</div>
-                                    <h2 className="mt-1 text-2xl font-semibold tracking-[-0.05em] text-slate-900">Create a new position</h2>
+                                    <h2 className="mt-1 text-2xl font-semibold tracking-[-0.05em] text-white">Create a new position</h2>
                                 </div>
-                                <button type="button" onClick={() => setShowComposer(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                                <button type="button" onClick={() => setShowComposer(false)} className="flex h-9 w-9 items-center justify-center rounded-xl glass-pill text-slate-300 hover:text-white transition">
                                     <X size={16} />
                                 </button>
                             </div>
 
-                            <div className="mb-5 flex items-center gap-2 overflow-x-auto">
+                            <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-1">
                                 {['01 Details', '02 Requirements', '03 Hiring Team', '04 Review', '05 Publish'].map((label, index) => (
-                                    <div key={label} className={`flex shrink-0 items-center gap-2 rounded-full px-2.5 py-1.5 text-[10px] font-semibold ${step === index + 1 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                    <div key={label} className={`flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${step === index + 1 ? 'bg-indigo-600 text-white shadow-sm' : 'glass-pill text-slate-300'}`}>
                                         <span>{label}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+                            {error && <div className="mb-4 rounded-xl border border-rose-400/30 bg-rose-500/20 px-3 py-2 text-sm text-rose-200">{error}</div>}
 
                             {step === 1 && (
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="md:col-span-2">
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Job title</label>
-                                        <input value={jobForm.title} onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Job title</label>
+                                        <input value={jobForm.title} onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Department</label>
-                                        <input value={jobForm.department} onChange={(e) => setJobForm({ ...jobForm, department: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Department</label>
+                                        <input value={jobForm.department} onChange={(e) => setJobForm({ ...jobForm, department: e.target.value })} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Location</label>
-                                        <input value={jobForm.location} onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Location</label>
+                                        <input value={jobForm.location} onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Employment type</label>
-                                        <input value={jobForm.employmentType} onChange={(e) => setJobForm({ ...jobForm, employmentType: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Employment type</label>
+                                        <input value={jobForm.employmentType} onChange={(e) => setJobForm({ ...jobForm, employmentType: e.target.value })} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Experience</label>
-                                        <input value={jobForm.experience} onChange={(e) => setJobForm({ ...jobForm, experience: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Experience</label>
+                                        <input value={jobForm.experience} onChange={(e) => setJobForm({ ...jobForm, experience: e.target.value })} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Job description</label>
-                                        <textarea value={jobForm.description} onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })} rows={4} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" placeholder="Describe the role, responsibilities, and impact." />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Job description</label>
+                                        <textarea value={jobForm.description} onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })} rows={4} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-400" placeholder="Describe the role, responsibilities, and impact." />
                                     </div>
                                 </div>
                             )}
@@ -1200,12 +1240,12 @@ export default function RecruiterDashboard() {
                             {step === 2 && (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Required skills</label>
-                                        <textarea value={jobForm.requirements.join(', ')} onChange={(e) => setJobForm({ ...jobForm, requirements: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} rows={3} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Required skills</label>
+                                        <textarea value={jobForm.requirements.join(', ')} onChange={(e) => setJobForm({ ...jobForm, requirements: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} rows={3} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-400" />
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Nice to have</label>
-                                        <textarea value={jobForm.niceToHave.join(', ')} onChange={(e) => setJobForm({ ...jobForm, niceToHave: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} rows={3} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Nice to have</label>
+                                        <textarea value={jobForm.niceToHave.join(', ')} onChange={(e) => setJobForm({ ...jobForm, niceToHave: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} rows={3} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-slate-400" />
                                     </div>
                                 </div>
                             )}
@@ -1213,30 +1253,30 @@ export default function RecruiterDashboard() {
                             {step === 3 && (
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Hiring manager</label>
-                                        <input value={jobForm.manager} onChange={(e) => setJobForm({ ...jobForm, manager: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Hiring manager</label>
+                                        <input value={jobForm.manager} onChange={(e) => setJobForm({ ...jobForm, manager: e.target.value })} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Recruiters</label>
-                                        <input value={jobForm.recruiters.join(', ')} onChange={(e) => setJobForm({ ...jobForm, recruiters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Recruiters</label>
+                                        <input value={jobForm.recruiters.join(', ')} onChange={(e) => setJobForm({ ...jobForm, recruiters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium text-slate-700">Interview panel</label>
-                                        <input value={jobForm.panel.join(', ')} onChange={(e) => setJobForm({ ...jobForm, panel: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-200 focus:bg-white" />
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-200">Interview panel</label>
+                                        <input value={jobForm.panel.join(', ')} onChange={(e) => setJobForm({ ...jobForm, panel: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} className="glass-input w-full rounded-xl px-3.5 py-2.5 text-sm text-white" />
                                     </div>
                                 </div>
                             )}
 
                             {step === 4 && (
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                                <div className="rounded-2xl glass-box border-white/15 p-5">
                                     <div className="mb-4 flex items-center justify-between">
                                         <div>
                                             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Preview</div>
-                                            <h3 className="mt-1 text-2xl font-semibold tracking-[-0.05em] text-slate-900">{jobForm.title}</h3>
+                                            <h3 className="mt-1 text-2xl font-semibold tracking-[-0.05em] text-white">{jobForm.title}</h3>
                                         </div>
-                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">Active</span>
+                                        <span className="rounded-full border border-emerald-400/30 bg-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">Active</span>
                                     </div>
-                                    <div className="mb-4 flex flex-wrap gap-2 text-[12px] text-slate-500">
+                                    <div className="mb-4 flex flex-wrap gap-2 text-[12px] text-slate-300">
                                         <span>{jobForm.department}</span>
                                         <span>·</span>
                                         <span>{jobForm.location}</span>
@@ -1245,13 +1285,13 @@ export default function RecruiterDashboard() {
                                         <span>·</span>
                                         <span>{jobForm.experience}</span>
                                     </div>
-                                    <p className="text-sm leading-6 text-slate-600">{jobForm.description}</p>
+                                    <p className="text-sm leading-6 text-slate-200">{jobForm.description}</p>
                                     <div className="mt-5 grid gap-4 md:grid-cols-2">
                                         <div>
                                             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Required skills</div>
                                             <div className="flex flex-wrap gap-2">
                                                 {jobForm.requirements.map((item) => (
-                                                    <span key={item} className="rounded-full bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 ring-1 ring-slate-200">{item}</span>
+                                                    <span key={item} className="rounded-full glass-pill px-3 py-1.5 text-[11px] font-medium text-white">{item}</span>
                                                 ))}
                                             </div>
                                         </div>
@@ -1259,7 +1299,7 @@ export default function RecruiterDashboard() {
                                             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Nice to have</div>
                                             <div className="flex flex-wrap gap-2">
                                                 {jobForm.niceToHave.map((item) => (
-                                                    <span key={item} className="rounded-full bg-indigo-50 px-2.5 py-1.5 text-[11px] font-medium text-indigo-700">{item}</span>
+                                                    <span key={item} className="rounded-full border border-indigo-400/30 bg-indigo-500/20 px-3 py-1.5 text-[11px] font-medium text-indigo-200">{item}</span>
                                                 ))}
                                             </div>
                                         </div>
@@ -1268,18 +1308,18 @@ export default function RecruiterDashboard() {
                             )}
 
                             {step === 5 && (
-                                <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 text-center">
-                                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white text-indigo-600">
-                                        <Sparkles size={18} />
+                                <div className="rounded-2xl glass-box border-indigo-500/30 bg-indigo-500/10 p-6 text-center">
+                                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/40 bg-indigo-500/20 text-indigo-300 shadow-md">
+                                        <Sparkles size={20} />
                                     </div>
-                                    <h3 className="text-xl font-semibold tracking-[-0.04em] text-slate-900">Ready to publish</h3>
-                                    <p className="mt-2 text-sm text-slate-600">This will go live to your candidate list and appear in the public jobs board.</p>
+                                    <h3 className="text-xl font-semibold tracking-[-0.04em] text-white">Ready to publish</h3>
+                                    <p className="mt-2 text-sm text-slate-300">This will go live to your candidate list and appear in the public jobs board.</p>
                                 </div>
                             )}
 
                             <div className="mt-6 flex items-center justify-between">
-                                <button type="button" onClick={() => setStep((current) => Math.max(1, current - 1))} className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700">Back</button>
-                                <button type="button" onClick={handleCreateJob} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">{step === 5 ? 'Publish' : 'Continue'}</button>
+                                <button type="button" onClick={() => setStep((current) => Math.max(1, current - 1))} className="rounded-xl glass-pill px-4 py-2.5 text-sm font-medium text-white hover:bg-white/15 transition">Back</button>
+                                <button type="button" onClick={handleCreateJob} className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 transition">{step === 5 ? 'Publish' : 'Continue'}</button>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -1288,20 +1328,20 @@ export default function RecruiterDashboard() {
 
             {/* Delete Job Confirmation Modal */}
             {jobToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-                    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4">
+                    <div className="w-full max-w-md rounded-2xl glass-container border-white/20 p-6 shadow-2xl">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-rose-400/30 bg-rose-500/20 text-rose-300">
                                 <Trash2 size={20} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-slate-900">Delete Job Posting</h3>
-                                <p className="text-xs text-slate-500">This action cannot be undone.</p>
+                                <h3 className="text-lg font-semibold text-white">Delete Job Posting</h3>
+                                <p className="text-xs text-slate-400">This action cannot be undone.</p>
                             </div>
                         </div>
 
-                        <p className="mt-4 text-sm text-slate-600 leading-relaxed">
-                            Are you sure you want to permanently delete <span className="font-semibold text-slate-900">"{jobToDelete.title}"</span>? 
+                        <p className="mt-4 text-sm text-slate-300 leading-relaxed">
+                            Are you sure you want to permanently delete <span className="font-semibold text-white">"{jobToDelete.title}"</span>? 
                             All associated candidate applications, matching assessments, and interview logs will also be permanently removed.
                         </p>
 
@@ -1310,7 +1350,7 @@ export default function RecruiterDashboard() {
                                 type="button"
                                 disabled={isDeletingJob}
                                 onClick={() => setJobToDelete(null)}
-                                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                                className="rounded-xl glass-pill px-4 py-2.5 text-sm font-medium text-white hover:bg-white/15 transition"
                             >
                                 Cancel
                             </button>
@@ -1318,7 +1358,7 @@ export default function RecruiterDashboard() {
                                 type="button"
                                 disabled={isDeletingJob}
                                 onClick={() => handleDeleteJob(jobToDelete._id)}
-                                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-500 transition disabled:opacity-50"
+                                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-500 transition disabled:opacity-50 shadow-md"
                             >
                                 {isDeletingJob ? 'Deleting...' : 'Delete Permanently'}
                             </button>

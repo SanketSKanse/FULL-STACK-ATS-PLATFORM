@@ -53,25 +53,25 @@ export default function ApplicationTimeline({ currentStatus = 'Applied', statusH
   return (
     <div className="space-y-6">
       {/* 1. Progressive Milestone Stepper */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
+      <div className="rounded-2xl glass-box glass-component p-5 shadow-lg">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Application Progress</div>
-            <div className="mt-0.5 text-sm font-semibold text-slate-900">
+            <div className="mt-0.5 text-sm font-semibold text-white">
               Current Stage:{' '}
               <span className={`inline-flex items-center gap-1 font-bold ${
                 isRejected
-                  ? 'text-rose-600'
+                  ? 'text-rose-400'
                   : normalizedCurrent === 'Hired'
-                  ? 'text-emerald-600'
-                  : 'text-indigo-600'
+                  ? 'text-emerald-400'
+                  : 'text-indigo-300'
               }`}>
                 {normalizedCurrent}
               </span>
             </div>
           </div>
           {isRejected && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/20 border border-rose-400/30 px-2.5 py-1 text-xs font-semibold text-rose-300">
               <X size={13} />
               <span>Not Selected</span>
             </span>
@@ -93,24 +93,28 @@ export default function ApplicationTimeline({ currentStatus = 'Applied', statusH
                     <div
                       className={`absolute top-4 left-[50%] right-[-50%] h-1 z-0 transition-colors duration-300 ${
                         idx < activeIndex && !isRejected
-                          ? 'bg-indigo-600'
-                          : 'bg-slate-200'
+                          ? 'bg-indigo-500'
+                          : 'bg-white/15'
                       }`}
                     />
                   )}
 
-                  {/* Stage Circle Indicator */}
-                  <div className="relative z-10">
-                    {isCompleted ? (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-white shadow-sm ring-4 ring-white transition-all">
+                  {/* Step Indicator Circle */}
+                  <div className="relative z-10 flex flex-col items-center">
+                    {isRejected && isCurrent ? (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg ring-4 ring-rose-400/30 transition-all">
+                        <X size={16} strokeWidth={2.5} />
+                      </div>
+                    ) : isCompleted ? (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-white shadow-md ring-2 ring-indigo-400/40 transition-all">
                         <Check size={16} strokeWidth={2.5} />
                       </div>
                     ) : isCurrent ? (
-                      <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-white shadow-md ring-4 ring-indigo-100 transition-all animate-pulse">
+                      <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-white shadow-lg ring-4 ring-indigo-400/30 transition-all animate-pulse">
                         <span className="h-2.5 w-2.5 rounded-full bg-white shadow-xs" />
                       </div>
                     ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-slate-100 text-xs font-semibold text-slate-400 ring-4 ring-white transition-all">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xs font-semibold text-slate-400 ring-2 ring-white/10 transition-all">
                         {idx + 1}
                       </div>
                     )}
@@ -121,16 +125,16 @@ export default function ApplicationTimeline({ currentStatus = 'Applied', statusH
                     <div
                       className={`text-xs transition-colors ${
                         isCurrent
-                          ? 'font-bold text-indigo-700'
+                          ? 'font-bold text-white'
                           : isCompleted
-                          ? 'font-semibold text-slate-800'
+                          ? 'font-semibold text-slate-200'
                           : 'font-medium text-slate-400'
                       }`}
                     >
                       {stage.label}
                     </div>
                     {isCurrent && (
-                      <span className="mt-0.5 inline-block rounded-full bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 text-[9px] font-bold text-indigo-700">
+                      <span className="mt-0.5 inline-block rounded-full border border-indigo-400/40 bg-indigo-500/20 px-2 py-0.5 text-[9px] font-bold text-indigo-200">
                         Active
                       </span>
                     )}
@@ -143,7 +147,7 @@ export default function ApplicationTimeline({ currentStatus = 'Applied', statusH
       </div>
 
       {/* 2. Chronological Audit Trail & Status Updates */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
+      <div className="rounded-2xl glass-box glass-component p-5 shadow-lg">
         <div className="mb-4 flex items-center justify-between">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
             Timeline Activity Log ({sortedHistory.length})
@@ -152,7 +156,7 @@ export default function ApplicationTimeline({ currentStatus = 'Applied', statusH
             <button
               type="button"
               onClick={() => setShowFullHistory(!showFullHistory)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-300 hover:text-white transition"
             >
               <span>{showFullHistory ? 'Collapse' : 'View all'}</span>
               {showFullHistory ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -171,21 +175,21 @@ export default function ApplicationTimeline({ currentStatus = 'Applied', statusH
               <div key={item._id || `${item.status}-${item.createdAt}-${idx}`} className="relative flex gap-3.5">
                 {/* Connecting vertical trail */}
                 {idx < arr.length - 1 && (
-                  <div className="absolute left-[13px] top-6 bottom-[-16px] w-0.5 bg-slate-200" />
+                  <div className="absolute left-[13px] top-6 bottom-[-16px] w-0.5 bg-white/15" />
                 )}
 
                 {/* Event Dot */}
                 <div className="relative z-10 flex flex-col items-center pt-0.5">
                   {isLatest ? (
-                    <div className={`flex h-7 w-7 items-center justify-center rounded-full shadow-sm ring-4 ${
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-full shadow-md ring-4 ${
                       isItemRejected
-                        ? 'bg-rose-600 text-white ring-rose-100'
-                        : 'bg-indigo-600 text-white ring-indigo-100 animate-pulse'
+                        ? 'bg-rose-600 text-white ring-rose-400/30'
+                        : 'bg-indigo-500 text-white ring-indigo-400/30 animate-pulse'
                     }`}>
                       {isItemRejected ? <X size={14} /> : <span className="h-2 w-2 rounded-full bg-white" />}
                     </div>
                   ) : (
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-indigo-600 ring-2 ring-white">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-indigo-400/30 bg-indigo-500/20 text-indigo-300 ring-2 ring-white/10">
                       <Check size={13} strokeWidth={2.5} />
                     </div>
                   )}
@@ -195,30 +199,30 @@ export default function ApplicationTimeline({ currentStatus = 'Applied', statusH
                 <div className={`flex-1 rounded-xl border p-3 transition-colors ${
                   isLatest
                     ? isItemRejected
-                      ? 'border-rose-200 bg-rose-50/50'
-                      : 'border-indigo-100 bg-indigo-50/40'
-                    : 'border-slate-200 bg-slate-50/70'
+                      ? 'border-rose-400/30 bg-rose-500/20'
+                      : 'border-indigo-400/30 bg-indigo-500/20'
+                    : 'border-white/10 glass-box'
                 }`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-semibold ${
                         isLatest
-                          ? isItemRejected ? 'text-rose-700' : 'text-indigo-900'
-                          : 'text-slate-800'
+                          ? isItemRejected ? 'text-rose-200' : 'text-indigo-200'
+                          : 'text-white'
                       }`}>
                         {item.status}
                       </span>
                       {isLatest && (
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                           isItemRejected
-                            ? 'bg-rose-100 text-rose-700'
-                            : 'bg-indigo-100 text-indigo-700'
+                            ? 'border border-rose-400/40 bg-rose-500/20 text-rose-200'
+                            : 'border border-indigo-400/40 bg-indigo-500/20 text-indigo-200'
                         }`}>
                           Current Status
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
+                    <div className="flex items-center gap-1 text-[11px] text-slate-300 font-medium">
                       <Clock size={12} className="text-slate-400" />
                       <span>
                         {item.createdAt
@@ -235,7 +239,7 @@ export default function ApplicationTimeline({ currentStatus = 'Applied', statusH
                     </div>
                   </div>
 
-                  <p className="mt-1 text-xs text-slate-600">
+                  <p className="mt-1 text-xs text-slate-200">
                     {item.note || (
                       item.status === 'Applied'
                         ? 'Candidate submitted application with resume.'
