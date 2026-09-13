@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, ArrowRight, Check, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Plus, Trash2, Sparkles, FileText, CheckCircle2 } from 'lucide-react';
 import { formatExperienceDate, normalizePhone, validateExperience, validatePhone } from '../utils/profileValidation';
+import ResumeParserModal from './ResumeParserModal';
 
 const steps = ['About you', 'Interests', 'Experience', 'Education', 'Skills & resume'];
 const blankExperience = { company: '', title: '', startDate: '', endDate: '', current: false, location: '', description: '' };
@@ -11,6 +12,8 @@ export default function ApplicantOnboarding({ user, initialProfile, onComplete }
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [autoFillNotice, setAutoFillNotice] = useState('');
+  const [isParserOpen, setIsParserOpen] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [experienceErrors, setExperienceErrors] = useState({});
   const [profile, setProfile] = useState({ phone: '', location: '', headline: '', summary: '', interests: [], preferredJobTitles: [], preferredWorkArrangements: [], preferredLocations: [], employmentTypes: [], skills: [], experiences: [], education: [], projects: [], certifications: [], achievements: [], resumeUrl: '', resumeFileName: '', ...(initialProfile || {}) });
@@ -19,6 +22,25 @@ export default function ApplicantOnboarding({ user, initialProfile, onComplete }
   const toggle = (field, value) => update(field, profile[field].includes(value) ? profile[field].filter((item) => item !== value) : [...profile[field], value]);
   const addText = (field, value) => { const next = value.trim(); if (next && !profile[field].includes(next)) update(field, [...profile[field], next]); };
   const updateItem = (field, index, key, value) => update(field, profile[field].map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
+
+  const handleApplyParsedData = (parsedData, file) => {
+    setProfile((prev) => {
+      const mergedSkills = [...new Set([...(prev.skills || []), ...(parsedData.skills || [])])];
+      return {
+        ...prev,
+        phone: parsedData.phone || prev.phone,
+        location: parsedData.location || prev.location,
+        headline: parsedData.headline || prev.headline,
+        summary: parsedData.summary || prev.summary,
+        skills: mergedSkills,
+        experiences: parsedData.experiences && parsedData.experiences.length > 0 ? parsedData.experiences : prev.experiences,
+        education: parsedData.education && parsedData.education.length > 0 ? parsedData.education : prev.education,
+        resumeFileName: file?.name || prev.resumeFileName || 'uploaded-resume.pdf',
+      };
+    });
+    setAutoFillNotice(`Successfully auto-filled from "${file?.name || 'Resume'}". Verify and fine-tune your details across the steps below.`);
+  };
+
   const save = async () => {
     const phoneError = profile.phone ? validatePhone(profile.phone) : '';
     const nextExperienceErrors = Object.fromEntries(profile.experiences.map((experience, index) => [index, validateExperience(experience)]).filter(([, value]) => value));
@@ -37,8 +59,32 @@ export default function ApplicantOnboarding({ user, initialProfile, onComplete }
   const canContinue = step !== 0 || (profile.headline.trim() && profile.location.trim());
 
   return <div className="app-shell flex min-h-screen items-center justify-center p-4 sm:p-8"><div className="w-full max-w-4xl rounded-[28px] border border-slate-200 bg-white shadow-soft">
-    <div className="border-b border-slate-200 p-6 sm:p-8"><div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500">Build your career profile</div><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-3xl font-semibold tracking-[-0.05em] text-slate-900">Tell us what makes you a great hire.</h1><p className="mt-2 text-sm text-slate-500">Hi {user.name}. You can update these details anytime.</p></div><div className="text-sm font-medium text-slate-500">Step {step + 1} of {steps.length}</div></div><div className="mt-6 grid grid-cols-5 gap-2">{steps.map((label, index) => <div key={label} className={`h-1 rounded-full ${index <= step ? 'bg-indigo-600' : 'bg-slate-200'}`} aria-label={label} />)}</div></div>
-    <div className="min-h-[390px] p-6 sm:p-8">{error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+    <div className="border-b border-slate-200 p-6 sm:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500">Build your career profile</div>
+        <button
+          type="button"
+          onClick={() => setIsParserOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-3.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-xs"
+        >
+          <Sparkles size={14} className="text-indigo-600" />
+          <span>Auto-fill with Resume (PDF)</span>
+        </button>
+      </div>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-3xl font-semibold tracking-[-0.05em] text-slate-900">Tell us what makes you a great hire.</h1><p className="mt-2 text-sm text-slate-500">Hi {user.name}. You can upload your PDF resume to auto-fill or enter details manually.</p></div><div className="text-sm font-medium text-slate-500">Step {step + 1} of {steps.length}</div></div>
+      <div className="mt-6 grid grid-cols-5 gap-2">{steps.map((label, index) => <div key={label} className={`h-1 rounded-full ${index <= step ? 'bg-indigo-600' : 'bg-slate-200'}`} aria-label={label} />)}</div>
+    </div>
+    <div className="min-h-[390px] p-6 sm:p-8">
+      {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {autoFillNotice && (
+        <div className="mb-5 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+            <span>{autoFillNotice}</span>
+          </div>
+          <button type="button" onClick={() => setAutoFillNotice('')} className="text-emerald-700 hover:text-emerald-900 font-bold ml-2">✕</button>
+        </div>
+      )}
       {step === 0 && <div className="grid gap-4 sm:grid-cols-2"><Field label="Full name" value={user.name} disabled /><Field label="Email" value={user.email} disabled /><Field label="Phone number" type="tel" inputMode="numeric" maxLength={10} value={profile.phone} onChange={(value) => update('phone', normalizePhone(value))} onBlur={() => setPhoneTouched(true)} placeholder="9876543210" error={phoneTouched && profile.phone ? validatePhone(profile.phone) : ''} /><Field label="Current location" value={profile.location} onChange={(value) => update('location', value)} placeholder="City, country" required /><div className="sm:col-span-2"><Field label="Professional headline" value={profile.headline} onChange={(value) => update('headline', value)} placeholder="Frontend Developer | React | JavaScript" required /></div><div className="sm:col-span-2"><label className="mb-1.5 block text-sm font-medium text-slate-700">Professional summary</label><textarea value={profile.summary} onChange={(event) => update('summary', event.target.value)} rows="4" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-300 focus:bg-white" placeholder="A short introduction about your experience and goals." /></div></div>}
       {step === 1 && <div className="space-y-6"><ChoiceGroup label="What kind of work are you looking for?" field="interests" values={['Frontend Development', 'Backend Development', 'Full Stack Development', 'Mobile Development', 'UI/UX Design', 'Data Science', 'DevOps', 'Cloud Engineering', 'Cybersecurity', 'Product Management']} profile={profile} toggle={toggle} /><ChoiceGroup label="Preferred work arrangement" field="preferredWorkArrangements" values={['Remote', 'Hybrid', 'On-site']} profile={profile} toggle={toggle} /><ChoiceGroup label="Employment type" field="employmentTypes" values={['Full-time', 'Part-time', 'Internship', 'Contract']} profile={profile} toggle={toggle} /><TagInput label="Preferred job titles" field="preferredJobTitles" profile={profile} addText={addText} placeholder="React Developer" /><TagInput label="Preferred locations" field="preferredLocations" profile={profile} addText={addText} placeholder="Mumbai" /></div>}
       {step === 2 && <RepeatableSection title="Experience" items={profile.experiences} field="experiences" blank={blankExperience} update={update} renderItem={(item, index) => <div className="grid gap-3 sm:grid-cols-2"><Field label="Company" value={item.company} onChange={(value) => updateItem('experiences', index, 'company', value)} /><Field label="Job title" value={item.title} onChange={(value) => updateItem('experiences', index, 'title', value)} /><DateField label="Start date" value={item.startDate} onChange={(value) => updateItem('experiences', index, 'startDate', formatExperienceDate(value))} onBlur={() => setExperienceErrors((current) => ({ ...current, [index]: validateExperience(item) }))} error={experienceErrors[index] && !item.current ? experienceErrors[index] : ''} /><DateField label="End date" value={item.current ? 'Present' : item.endDate} disabled={item.current} onChange={(value) => updateItem('experiences', index, 'endDate', formatExperienceDate(value))} onBlur={() => setExperienceErrors((current) => ({ ...current, [index]: validateExperience(item) }))} error={experienceErrors[index] && !item.current && item.endDate ? experienceErrors[index] : ''} placeholder="YYYYMM" /><label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={item.current} onChange={(event) => { updateItem('experiences', index, 'current', event.target.checked); setExperienceErrors((current) => ({ ...current, [index]: '' })); }} /> Currently working here</label><div className="sm:col-span-2"><Field label="Description" value={item.description} onChange={(value) => updateItem('experiences', index, 'description', value)} /></div></div>} />}
@@ -46,6 +92,7 @@ export default function ApplicantOnboarding({ user, initialProfile, onComplete }
       {step === 4 && <div className="space-y-6"><TagInput label="Skills" field="skills" profile={profile} addText={addText} placeholder="React" /><div className="rounded-2xl border border-slate-200 bg-slate-50 p-5"><div className="text-sm font-semibold text-slate-800">Resume reference</div><p className="mt-1 text-sm text-slate-500">Add a resume file reference now, or leave it empty and complete this later.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><Field label="Resume file name" value={profile.resumeFileName} onChange={(value) => update('resumeFileName', value)} placeholder="resume.pdf" /><Field label="Resume URL" value={profile.resumeUrl} onChange={(value) => update('resumeUrl', value)} placeholder="Secure file reference" /></div></div></div>}
     </div>
     <div className="flex items-center justify-between border-t border-slate-200 p-6 sm:p-8"><button type="button" disabled={step === 0 || saving} onClick={() => setStep((current) => current - 1)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 disabled:invisible"><ArrowLeft size={15} /> Back</button>{step < steps.length - 1 ? <button type="button" disabled={!canContinue || saving} onClick={() => setStep((current) => current + 1)} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">Continue <ArrowRight size={15} /></button> : <button type="button" disabled={saving} onClick={save} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:bg-slate-300">{saving ? 'Saving...' : 'Complete profile'} <Check size={15} /></button>}</div>
+    <ResumeParserModal isOpen={isParserOpen} onClose={() => setIsParserOpen(false)} onApplyParsedData={handleApplyParsedData} />
   </div></div>;
 }
 

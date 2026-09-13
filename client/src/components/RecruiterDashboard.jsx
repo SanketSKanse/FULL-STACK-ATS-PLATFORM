@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+    AlertTriangle,
     Bell,
     BriefcaseBusiness,
     Building2,
@@ -19,10 +20,13 @@ import {
     Search,
     Settings,
     Sparkles,
+    Trash2,
     UserRound,
     Users,
     X,
 } from 'lucide-react';
+import CandidateMatchCard from './CandidateMatchCard';
+import ApplicationTimeline from './ApplicationTimeline';
 
 export default function RecruiterDashboard() {
     const [jobs, setJobs] = useState([]);
@@ -32,6 +36,8 @@ export default function RecruiterDashboard() {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [selectedJob, setSelectedJob] = useState(null);
     const [selectedCandidate, setSelectedCandidate] = useState(null);
+    const [jobToDelete, setJobToDelete] = useState(null);
+    const [isDeletingJob, setIsDeletingJob] = useState(false);
     const [candidateJobFilter, setCandidateJobFilter] = useState('');
     const [pipelineJobFilter, setPipelineJobFilter] = useState('');
     const [jobStatusFilter, setJobStatusFilter] = useState('ALL');
@@ -77,10 +83,19 @@ export default function RecruiterDashboard() {
 
     const handleStatusChange = async (appId, newStatus) => {
         try {
-            await axios.patch(`http://localhost:5001/api/jobs/applications/${appId}/status`, { status: newStatus }, authConfig);
-            await fetchApplications();
+            const res = await axios.patch(`http://localhost:5001/api/jobs/applications/${appId}/status`, { status: newStatus }, authConfig);
+            const refreshedApplications = await fetchApplications();
             if (selectedCandidate?._id === appId) {
-                setSelectedCandidate((current) => ({ ...current, status: newStatus }));
+                const refreshedApp = (refreshedApplications || []).find((a) => a._id === appId);
+                if (refreshedApp) {
+                    setSelectedCandidate(refreshedApp);
+                } else {
+                    setSelectedCandidate((current) => ({
+                        ...current,
+                        status: newStatus,
+                        statusHistory: res.data.statusHistory || current.statusHistory
+                    }));
+                }
             }
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to update candidate status.');
@@ -97,6 +112,28 @@ export default function RecruiterDashboard() {
             if (nextStatus === 'CLOSED') setActiveView('Jobs');
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to update job status.');
+        }
+    };
+
+    const handleDeleteJob = async (jobId) => {
+        if (!jobId) return;
+        setIsDeletingJob(true);
+        setError('');
+        setMessage('');
+        try {
+            const res = await axios.delete(`http://localhost:5001/api/jobs/recruiter/jobs/${jobId}`, authConfig);
+            setJobs((current) => current.filter((j) => j._id !== jobId));
+            setApplications((current) => current.filter((a) => (a.jobId?._id || a.jobId) !== jobId));
+            if (selectedJob?._id === jobId) {
+                setSelectedJob(null);
+                setActiveView('Jobs');
+            }
+            setMessage(res.data.message || 'Job posting deleted successfully.');
+            setJobToDelete(null);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to delete job posting.');
+        } finally {
+            setIsDeletingJob(false);
         }
     };
 
@@ -527,11 +564,19 @@ export default function RecruiterDashboard() {
                                                 <div className="text-[12px] text-slate-500">Progress</div>
                                                 <div className="text-sm font-medium text-slate-700">{interviewCount} interviewing</div>
                                             </div>
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2">
                                                 <div className="hidden text-[12px] text-slate-500 xl:block">{job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Date unavailable'}</div>
-                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
-                                                    <MoreHorizontal size={16} />
-                                                </div>
+                                                <button
+                                                    type="button"
+                                                    title="Delete job posting"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setJobToDelete(job);
+                                                    }}
+                                                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
                                             </div>
                                         </button>;
                                     })}
@@ -548,10 +593,18 @@ export default function RecruiterDashboard() {
                                     <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{selectedJob.title}</h1>
                                     <p className="mt-2 text-sm text-slate-500">{selectedJob.department} · {selectedJob.location} · {selectedJob.status || 'ACTIVE'}</p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Edit</button>
                                     <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">Share</button>
                                     <button type="button" onClick={() => handleJobStatusChange(selectedJob)} className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">{selectedJob.status === 'CLOSED' ? 'Reopen hiring' : 'Pause hiring'}</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setJobToDelete(selectedJob)}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 hover:border-rose-300"
+                                    >
+                                        <Trash2 size={14} />
+                                        <span>Delete Job</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -708,6 +761,16 @@ export default function RecruiterDashboard() {
                                                                                 <div className="text-[11px] text-slate-500">{role}</div>
                                                                             </div>
                                                                         </div>
+                                                                        <span className={`shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold shadow-2xs ${
+                                                                            (item.match?.matchScore ?? 0) >= 80
+                                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                                                : (item.match?.matchScore ?? 0) >= 50
+                                                                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                                                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                                        }`}>
+                                                                            <Sparkles size={10} className={(item.match?.matchScore ?? 0) >= 80 ? 'text-emerald-600' : 'text-indigo-600'} />
+                                                                            <span>{item.match?.matchScore ?? 0}% Fit</span>
+                                                                        </span>
                                                                     </div>
 
                                                                     <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-500">
@@ -715,10 +778,27 @@ export default function RecruiterDashboard() {
                                                                         <span className="inline-flex items-center gap-1"><MapPin size={11} /> {item.jobId?.location || 'Location unavailable'}</span>
                                                                     </div>
 
-                                                                    <div className="mb-3 flex flex-wrap gap-1.5">
-                                                                        {(item.jobId?.requirements || []).map((skill) => (
-                                                                            <span key={skill} className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">{skill}</span>
-                                                                        ))}
+                                                                    <div className="mb-3 flex flex-wrap gap-1">
+                                                                        {((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).slice(0, 4).map((skill) => {
+                                                                            const isMatched = item.match?.matchingSkills?.some(ms => ms.toLowerCase() === skill.toLowerCase());
+                                                                            return (
+                                                                                <span
+                                                                                    key={skill}
+                                                                                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                                                                        isMatched
+                                                                                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold'
+                                                                                            : 'bg-slate-100 text-slate-600'
+                                                                                    }`}
+                                                                                >
+                                                                                    {isMatched ? '✓ ' : ''}{skill}
+                                                                                </span>
+                                                                            );
+                                                                        })}
+                                                                        {((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).length > 4 && (
+                                                                            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+                                                                                +{((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).length - 4}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
 
                                                                     <div className="mb-3 border-t border-slate-200 pt-3">
@@ -789,6 +869,11 @@ export default function RecruiterDashboard() {
 
                             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
                                 <div className="space-y-6">
+                                    <CandidateMatchCard
+                                        jobId={selectedCandidate.jobId?._id || selectedCandidate.jobId}
+                                        candidateId={selectedCandidate.applicantId?._id || selectedCandidate.applicantId}
+                                    />
+
                                     <div className="rounded-2xl border border-slate-200 bg-white p-5">
                                         <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Resume</div>
                                         {selectedCandidate.resumeUrl ? (
@@ -799,33 +884,56 @@ export default function RecruiterDashboard() {
                                     </div>
 
                                     <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                                        <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Skills</div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(selectedCandidate.jobId?.requirements || []).map((skill) => (
-                                                <span key={skill} className="rounded-full bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-700">{skill}</span>
-                                            ))}
+                                        <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Candidate Skills & Match Fit</div>
+                                        
+                                        <div className="mb-4">
+                                            <div className="mb-2 text-xs font-semibold text-slate-600">Candidate's Stated Skills:</div>
+                                            {selectedCandidate.candidateProfile?.skills?.length ? (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {selectedCandidate.candidateProfile.skills.map((skill) => {
+                                                        const isMatched = selectedCandidate.match?.matchingSkills?.some(
+                                                            (ms) => ms.toLowerCase() === skill.toLowerCase()
+                                                        );
+                                                        return (
+                                                            <span
+                                                                key={skill}
+                                                                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                                                                    isMatched
+                                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold shadow-2xs'
+                                                                        : 'bg-slate-100 text-slate-700'
+                                                                }`}
+                                                            >
+                                                                {isMatched ? '✓ ' : ''}{skill}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 italic">No skills listed on candidate profile yet.</p>
+                                            )}
                                         </div>
+
+                                        {selectedCandidate.match?.missingSkills?.length > 0 && (
+                                            <div className="border-t border-slate-100 pt-3">
+                                                <div className="mb-2 text-xs font-semibold text-amber-700">
+                                                    Unmatched Role Requirements ({selectedCandidate.match.missingSkills.length}):
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {selectedCandidate.match.missingSkills.map((req) => (
+                                                        <span key={req} className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-medium text-amber-800">
+                                                            {req}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                                        <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Application timeline</div>
-                                        <div className="space-y-4">
-                                            {(selectedCandidate.statusHistory?.length ? selectedCandidate.statusHistory : [{ status: selectedCandidate.status || 'Applied', createdAt: selectedCandidate.createdAt }]).map((history, index) => (
-                                                <div key={history._id || `${history.status}-${history.createdAt}`} className="flex gap-3">
-                                                    <div className="flex flex-col items-center">
-                                                        <div className={`mt-0.5 h-3 w-3 rounded-full ${index === 0 ? 'bg-indigo-600' : 'bg-slate-300'}`} />
-                                                    </div>
-                                                    <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                                                        <div className="flex items-center justify-between gap-3">
-                                                            <div className="text-sm font-semibold text-slate-800">{history.status}</div>
-                                                            <div className="text-[11px] text-slate-500">{history.createdAt ? new Date(history.createdAt).toLocaleDateString() : 'Date unavailable'}</div>
-                                                        </div>
-                                                        <p className="mt-1 text-[12px] text-slate-600">Status updated by the hiring team.</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                    {/* Progressive Application Timeline */}
+                                    <ApplicationTimeline
+                                        currentStatus={selectedCandidate.status || 'Applied'}
+                                        statusHistory={selectedCandidate.statusHistory || []}
+                                    />
                                 </div>
 
                                 <div className="space-y-6">
@@ -878,6 +986,24 @@ export default function RecruiterDashboard() {
                                                             <div className="text-[12px] text-slate-500">{email}</div>
                                                         </div>
                                                     </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openCandidateProfile(item);
+                                                        }}
+                                                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold border transition shadow-2xs ${
+                                                            (item.match?.matchScore ?? 0) >= 80
+                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                                : (item.match?.matchScore ?? 0) >= 50
+                                                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                                                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                        }`}
+                                                        title="Click to view full match score breakdown"
+                                                    >
+                                                        <Sparkles size={11} className={(item.match?.matchScore ?? 0) >= 80 ? 'text-emerald-600' : 'text-indigo-600'} />
+                                                        <span>{item.match?.matchScore ?? 0}% Fit</span>
+                                                    </button>
                                                 </div>
                                                 <div className="mb-3 flex items-center gap-2 text-[11px] text-slate-500">
                                                     <span>{item.jobId?.title || 'Role unavailable'}</span>
@@ -885,9 +1011,26 @@ export default function RecruiterDashboard() {
                                                     <span>{item.jobId?.location || 'Location unavailable'}</span>
                                                 </div>
                                                 <div className="mb-3 flex flex-wrap gap-1.5">
-                                                    {(item.jobId?.requirements || []).map((skill) => (
-                                                        <span key={skill} className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">{skill}</span>
-                                                    ))}
+                                                    {((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).slice(0, 5).map((skill) => {
+                                                        const isMatched = item.match?.matchingSkills?.some(ms => ms.toLowerCase() === skill.toLowerCase());
+                                                        return (
+                                                            <span
+                                                                key={skill}
+                                                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                                                    isMatched
+                                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold'
+                                                                        : 'bg-slate-100 text-slate-600'
+                                                                }`}
+                                                            >
+                                                                {isMatched ? '✓ ' : ''}{skill}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                    {((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).length > 5 && (
+                                                        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">
+                                                            +{((item.candidateProfile?.skills?.length ? item.candidateProfile.skills : item.jobId?.requirements) || []).length - 5}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center justify-between border-t border-slate-200 pt-3">
                                                     <span className="text-[11px] text-slate-500">Candidate status</span>
@@ -1142,6 +1285,47 @@ export default function RecruiterDashboard() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Delete Job Confirmation Modal */}
+            {jobToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+                    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+                                <Trash2 size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-slate-900">Delete Job Posting</h3>
+                                <p className="text-xs text-slate-500">This action cannot be undone.</p>
+                            </div>
+                        </div>
+
+                        <p className="mt-4 text-sm text-slate-600 leading-relaxed">
+                            Are you sure you want to permanently delete <span className="font-semibold text-slate-900">"{jobToDelete.title}"</span>? 
+                            All associated candidate applications, matching assessments, and interview logs will also be permanently removed.
+                        </p>
+
+                        <div className="mt-6 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                disabled={isDeletingJob}
+                                onClick={() => setJobToDelete(null)}
+                                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isDeletingJob}
+                                onClick={() => handleDeleteJob(jobToDelete._id)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-500 transition disabled:opacity-50"
+                            >
+                                {isDeletingJob ? 'Deleting...' : 'Delete Permanently'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

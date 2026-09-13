@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, BriefcaseBusiness, Building2, ChevronDown, CircleHelp, FolderKanban, Grid2x2, MapPin, Menu, Search, Settings, UserRound, Users, X } from 'lucide-react';
+import { Bell, BriefcaseBusiness, Building2, ChevronDown, CircleHelp, FolderKanban, Grid2x2, MapPin, Menu, Search, Settings, UserRound, Users, X, Sparkles, Award } from 'lucide-react';
 import ApplicantOnboarding from './ApplicantOnboarding';
+import CandidateMatchCard from './CandidateMatchCard';
+import ResumeParserModal from './ResumeParserModal';
+import ApplicationTimeline from './ApplicationTimeline';
 
 export default function CandidateDashboard() {
 
@@ -20,6 +23,36 @@ export default function CandidateDashboard() {
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [expandedMatchJobId, setExpandedMatchJobId] = useState(null);
+    const [isParserOpen, setIsParserOpen] = useState(false);
+
+    const handleApplyResumeToProfile = async (parsedData, file) => {
+        try {
+            setError('');
+            const mergedSkills = [...new Set([...(profile?.skills || []), ...(parsedData.skills || [])])];
+            const updatedPayload = {
+                ...(profile || {}),
+                phone: parsedData.phone || profile?.phone || '',
+                location: parsedData.location || profile?.location || '',
+                headline: parsedData.headline || profile?.headline || '',
+                summary: parsedData.summary || profile?.summary || '',
+                skills: mergedSkills,
+                experiences: parsedData.experiences?.length ? parsedData.experiences : (profile?.experiences || []),
+                education: parsedData.education?.length ? parsedData.education : (profile?.education || []),
+                resumeFileName: file?.name || profile?.resumeFileName || 'resume.pdf',
+                profileCompleted: true
+            };
+
+            const res = await axios.put('http://localhost:5001/api/applicant/profile', updatedPayload, authConfig);
+            setMessage('Profile updated successfully from resume!');
+            setProfile(res.data.profile);
+            setProfileCompletion(res.data.completion);
+            fetchRecommendations();
+        } catch (err) {
+            console.error('Error saving parsed profile:', err);
+            setError(err.response?.data?.error || 'Failed to update profile from resume.');
+        }
+    };
 
     const user = JSON.parse(localStorage.getItem('user')) || {};
     const authConfig = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
@@ -257,7 +290,30 @@ export default function CandidateDashboard() {
 
                     {activeView === 'Profile' && profile && !editingProfile && (
                         <div>
-                            <div className="mb-6 flex items-end justify-between border-b border-slate-200 pb-5"><div><div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Your profile</div><h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{user.name}</h1><p className="mt-2 text-sm text-slate-500">{profile.headline || 'Add a professional headline'} · {profile.location || 'Location not added'}</p></div><button type="button" onClick={() => setEditingProfile(true)} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">Edit profile</button></div>
+                            <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-5">
+                                <div>
+                                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Your profile</div>
+                                    <h1 className="text-[28px] font-semibold tracking-[-0.05em] text-slate-900">{user.name}</h1>
+                                    <p className="mt-2 text-sm text-slate-500">{profile.headline || 'Add a professional headline'} · {profile.location || 'Location not added'}</p>
+                                </div>
+                                <div className="flex items-center gap-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsParserOpen(true)}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-xs"
+                                    >
+                                        <Sparkles size={14} className="text-indigo-600" />
+                                        <span>Auto-fill from Resume (PDF)</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingProfile(true)}
+                                        className="rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 transition"
+                                    >
+                                        Edit profile
+                                    </button>
+                                </div>
+                            </div>
                             <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-5"><div className="flex items-center justify-between"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Profile completion</div><div className="mt-2 text-3xl font-semibold text-slate-900">{profileCompletion}%</div></div><div className="h-2 w-40 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-indigo-600" style={{ width: `${profileCompletion}%` }} /></div></div></div>
                             <div className="grid gap-4 lg:grid-cols-2"><ProfileSection title="About" content={profile.summary || 'No professional summary added yet.'} /><ProfileSection title="Skills" content={profile.skills?.length ? profile.skills.join(' · ') : 'No skills added yet.'} /><ProfileSection title="Experience" content={profile.experiences?.length ? profile.experiences.map((item) => `${item.title || 'Role'} at ${item.company || 'Company'}`).join(' · ') : 'No experience added yet.'} /><ProfileSection title="Education" content={profile.education?.length ? profile.education.map((item) => `${item.degree || 'Degree'} at ${item.institution || 'Institution'}`).join(' · ') : 'No education added yet.'} /><ProfileSection title="Certifications" content={profile.certifications?.length ? profile.certifications.map((item) => item.name).join(' · ') : 'No certifications added yet.'} /><ProfileSection title="Achievements" content={profile.achievements?.length ? profile.achievements.map((item) => item.title).join(' · ') : 'No achievements added yet.'} /><ProfileSection title="Resume" content={profile.resumeFileName || 'No resume uploaded.'} /></div>
                         </div>
@@ -275,7 +331,24 @@ export default function CandidateDashboard() {
 
                             <div className="mb-6">
                                 <div className="mb-3 flex items-center justify-between"><div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Based on your profile</div><h2 className="mt-1 text-lg font-semibold text-slate-900">Recommended jobs</h2></div><span className="text-xs text-slate-500">{recommendedJobs.length} matches</span></div>
-                                {recommendedJobs.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-6 text-sm text-slate-500">No roles match your profile yet. Update your skills or career preferences to improve recommendations.</div> : <div className="grid gap-3 lg:grid-cols-2">{recommendedJobs.slice(0, 4).map((job) => <div key={job._id} className="flex items-center justify-between gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4"><div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-900">{job.title}</div><div className="mt-1 truncate text-xs text-slate-500">{job.companyId?.name || 'Company unavailable'} · {job.location}</div></div><div className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700">{job.matchScore}% match</div></div>)}</div>}
+                                {recommendedJobs.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-6 text-sm text-slate-500">No roles match your profile yet. Update your skills or career preferences to improve recommendations.</div> : <div className="grid gap-3 lg:grid-cols-2">{recommendedJobs.slice(0, 4).map((job) => (
+                                    <div key={job._id} onClick={() => setExpandedMatchJobId(expandedMatchJobId === job._id ? null : job._id)} className="flex flex-col cursor-pointer rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 transition hover:bg-indigo-50/80 hover:border-indigo-200">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-semibold text-slate-900">{job.title}</div>
+                                                <div className="mt-1 truncate text-xs text-slate-500">{job.companyId?.name || 'Company unavailable'} · {job.location}</div>
+                                            </div>
+                                            <div className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700 shadow-2xs ring-1 ring-indigo-100">
+                                                {job.matchScore}% match
+                                            </div>
+                                        </div>
+                                        {expandedMatchJobId === job._id && (
+                                            <div className="mt-3 border-t border-indigo-100 pt-3" onClick={(e) => e.stopPropagation()}>
+                                                <CandidateMatchCard jobId={job._id} candidateId={user.id || user._id} compact={true} />
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}</div>}
                             </div>
 
                             <div className="mb-5 grid gap-3 lg:grid-cols-[1.2fr_0.6fr_0.6fr_0.6fr]">
@@ -322,7 +395,17 @@ export default function CandidateDashboard() {
                                             </div>
 
                                             <div className="flex flex-col gap-4 border-t border-slate-200 pt-4 md:flex-row md:items-center md:justify-between">
-                                                <div className="text-[12px] text-slate-500">{job.requirements?.length ? `${job.requirements.length} requirements` : 'No requirements specified'}</div>
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="text-[12px] text-slate-500">{job.requirements?.length ? `${job.requirements.length} reqs` : 'No requirements'}</div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setExpandedMatchJobId(expandedMatchJobId === job._id ? null : job._id)}
+                                                        className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50/70 px-2.5 py-1 text-[11px] font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs"
+                                                    >
+                                                        <Sparkles size={12} className="text-indigo-600" />
+                                                        <span>{expandedMatchJobId === job._id ? 'Hide Match' : 'Explain Match Fit'}</span>
+                                                    </button>
+                                                </div>
                                                 <div className="mt-4 flex flex-col space-y-3 md:mt-0 md:w-64">
                                                     <input
                                                         type="file"
@@ -335,6 +418,12 @@ export default function CandidateDashboard() {
                                                     </button>
                                                 </div>
                                             </div>
+
+                                            {expandedMatchJobId === job._id && (
+                                                <div className="mt-4 border-t border-slate-100 pt-4 animate-in fade-in duration-200">
+                                                    <CandidateMatchCard jobId={job._id} candidateId={user.id || user._id} />
+                                                </div>
+                                            )}
                                         </div>
                                     ))
                                 )}
@@ -363,21 +452,43 @@ export default function CandidateDashboard() {
                                                     <div className="text-xl font-semibold tracking-[-0.04em] text-slate-900">{app.jobId?.title || 'Untitled role'}</div>
                                                     <div className="mt-1 text-[12px] text-slate-500">{app.jobId?.companyId?.name || 'Company unavailable'} · {app.jobId?.department || 'Department unavailable'} · {app.jobId?.location || 'Location unavailable'}</div>
                                                 </div>
-                                                <div className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 ring-1 ring-indigo-100">{app.status || 'Applied'}</div>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {app.match && (
+                                                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold border shadow-2xs ${
+                                                            app.match.matchScore >= 80
+                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                                : app.match.matchScore >= 50
+                                                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                        }`}>
+                                                            <Sparkles size={11} className={app.match.matchScore >= 80 ? 'text-emerald-600' : 'text-indigo-600'} />
+                                                            <span>{app.match.matchScore}% Match Fit</span>
+                                                        </span>
+                                                    )}
+                                                    <div className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 ring-1 ring-indigo-100">{app.status || 'Applied'}</div>
+                                                </div>
                                             </div>
 
                                             <div className="mt-4 grid gap-3 md:grid-cols-3">
                                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Status</div>
+                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Current Status</div>
                                                     <div className="mt-2 text-sm font-semibold text-slate-800">{app.status}</div>
                                                 </div>
                                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Applied</div>
+                                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Applied Date</div>
                                                     <div className="mt-2 text-sm font-semibold text-slate-800">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'Unknown date'}</div>
                                                 </div>
                                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                                                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Resume</div>
-                                                    <div className="mt-2 text-sm font-semibold text-slate-800">{app.resumeUrl ? 'Available' : 'Not provided'}</div>
+                                                    <div className="mt-2 text-sm font-semibold text-slate-800">
+                                                        {app.resumeUrl ? (
+                                                            <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                                                                View Submitted Resume
+                                                            </a>
+                                                        ) : (
+                                                            'Not provided'
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -391,22 +502,12 @@ export default function CandidateDashboard() {
                                                 </div>
                                             )}
 
+                                            {/* Progressive Application Timeline */}
                                             <div className="mt-5">
-                                                <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Timeline</div>
-                                                <div className="space-y-4">
-                                                    {(app.statusHistory || []).map((history, index) => (
-                                                        <div key={history._id || history.createdAt} className="flex gap-3">
-                                                            <div className="flex flex-col items-center">
-                                                                <div className={`mt-0.5 h-3 w-3 rounded-full ${index === 0 ? 'bg-indigo-600' : 'bg-slate-300'}`} />
-                                                                {index < (app.statusHistory || []).length - 1 && <div className="mt-2 h-8 w-px bg-slate-200" />}
-                                                            </div>
-                                                            <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                                                                <div className="text-sm font-medium text-slate-800">{history.status}</div>
-                                                                <div className="mt-1 text-[11px] text-slate-500">{new Date(history.createdAt).toLocaleDateString()}</div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                <ApplicationTimeline
+                                                    currentStatus={app.status || 'Applied'}
+                                                    statusHistory={app.statusHistory || []}
+                                                />
                                             </div>
                                         </div>
                                     ))}
@@ -430,6 +531,12 @@ export default function CandidateDashboard() {
                     })}
                 </div>
             </div>
+
+            <ResumeParserModal
+                isOpen={isParserOpen}
+                onClose={() => setIsParserOpen(false)}
+                onApplyParsedData={handleApplyResumeToProfile}
+            />
         </div>
     );
 }
