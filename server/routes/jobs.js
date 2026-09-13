@@ -5,6 +5,7 @@ const Application = require('../models/application');
 const ApplicationStatusHistory = require('../models/applicationStatusHistory');
 const ApplicantProfile = require('../models/applicantProfile');
 const User = require('../models/user');
+const Notification = require('../models/notification');
 const { calculateMatch } = require('../services/matchingService');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
@@ -195,6 +196,19 @@ router.post('/apply', requireAuth, requireRole('applicant'), upload.single('resu
       coverLetter: coverLetter || '',
     });
     await ApplicationStatusHistory.create({ applicationId: application._id, status: 'Applied', changedBy: req.user._id });
+    
+    // Notify recruiter of new applicant
+    if (job.postedBy) {
+      await Notification.create({
+        userId: job.postedBy,
+        title: 'New Candidate Applied',
+        message: `${req.user.name || 'A candidate'} submitted an application for "${job.title}".`,
+        type: 'NEW_APPLICATION',
+        link: String(application._id),
+        metadata: { applicationId: application._id, candidateId: req.user._id, jobTitle: job.title },
+      }).catch((e) => console.error('Notification creation error:', e));
+    }
+
     res.status(201).json({ message: 'Job application submitted successfully!', application });
   } catch (err) {
     if (err.code === 11000) return res.status(400).json({ error: 'You have already applied for this position.' });
@@ -271,6 +285,16 @@ router.patch('/applications/:appId/status', requireAuth, requireRole('recruiter'
     await application.save();
     await ApplicationStatusHistory.create({ applicationId: application._id, status, changedBy: req.user._id });
     
+    // Notify candidate of status progression
+    await Notification.create({
+      userId: application.applicantId,
+      title: `Application Moved to ${status}`,
+      message: `Your application for "${application.jobId?.title || 'the position'}" has advanced to "${status}".`,
+      type: 'APPLICATION_PROGRESS',
+      link: 'Applications',
+      metadata: { applicationId: application._id, status },
+    }).catch((e) => console.error('Notification creation error:', e));
+
     const statusHistory = await ApplicationStatusHistory.find({ applicationId: application._id }).sort({ createdAt: 1 });
     res.json({ message: 'Application status updated!', application, statusHistory });
   } catch (err) {
@@ -285,7 +309,7 @@ router.patch('/applications/:appId/interview', requireAuth, requireRole('recruit
       return res.status(400).json({ error: 'A valid interview date and time are required.' });
     }
 
-    const application = await Application.findById(req.params.appId).populate('jobId', 'companyId');
+    const application = await Application.findById(req.params.appId).populate('jobId', 'title companyId');
     if (!application || String(application.jobId.companyId) !== String(req.user.companyId)) {
       return res.status(404).json({ error: 'Application not found.' });
     }
@@ -298,6 +322,26 @@ router.patch('/applications/:appId/interview', requireAuth, requireRole('recruit
     await application.save();
     await ApplicationStatusHistory.create({ applicationId: application._id, status: 'Interviewing', changedBy: req.user._id });
     
+    // Notify candidate of interview
+    await Notification.create({
+      userId: application.applicantId,
+      title: 'Interview Scheduled',
+      message: `An interview (${round || 'Assessment'}) has been scheduled for "${application.jobId?.title || 'your applied position'}" on ${new Date(scheduledAt).toLocaleString()}.`,
+      type: 'INTERVIEW_SCHEDULED',
+      link: 'Applications',
+      metadata: { applicationId: application._id, scheduledAt },
+    }).catch((e) => console.error('Notification creation error:', e));
+
+    // Notify recruiter of confirmation
+    await Notification.create({
+      userId: req.user._id,
+      title: 'Interview Confirmed',
+      message: `Interview (${round || 'Assessment'}) scheduled on ${new Date(scheduledAt).toLocaleString()}.`,
+      type: 'INTERVIEW_SCHEDULED',
+      link: 'Interviews',
+      metadata: { applicationId: application._id, scheduledAt },
+    }).catch((e) => console.error('Notification creation error:', e));
+
     const statusHistory = await ApplicationStatusHistory.find({ applicationId: application._id }).sort({ createdAt: 1 });
     res.json({ message: 'Interview scheduled.', application, statusHistory });
   } catch (err) {

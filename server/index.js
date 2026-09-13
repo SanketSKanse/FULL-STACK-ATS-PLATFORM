@@ -30,6 +30,9 @@ const candidateRoutes = require('./routes/candidates');
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/applicant', candidateRoutes); // Backward-compatible alias for resume parsing
 
+const notificationRoutes = require('./routes/notifications');
+app.use('/api/notifications', notificationRoutes);
+
 // 4. Database Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB successfully!"))
