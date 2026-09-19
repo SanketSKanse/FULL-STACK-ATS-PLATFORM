@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Company',
     default: null
+  },
+  title: {
+    type: String,
+    default: 'Recruiter'
   }
 }, { timestamps: true });
 

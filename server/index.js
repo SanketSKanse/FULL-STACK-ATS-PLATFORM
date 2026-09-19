@@ -33,6 +33,9 @@ app.use('/api/applicant', candidateRoutes); // Backward-compatible alias for res
 const notificationRoutes = require('./routes/notifications');
 app.use('/api/notifications', notificationRoutes);
 
+const teamRoutes = require('./routes/team');
+app.use('/api/team', teamRoutes);
+
 // 4. Database Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB successfully!"))
