@@ -5,6 +5,7 @@ const Application = require('../models/application');
 const ApplicationStatusHistory = require('../models/applicationStatusHistory');
 const ApplicantProfile = require('../models/applicantProfile');
 const User = require('../models/user');
+const Company = require('../models/company');
 const Notification = require('../models/notification');
 const { calculateMatch } = require('../services/matchingService');
 const { requireAuth, requireRole } = require('../middleware/auth');
@@ -172,6 +173,32 @@ router.post('/', requireAuth, requireRole('recruiter'), async (req, res) => {
       companyId: req.user.companyId,
       postedBy: req.user._id,
     });
+
+    if (job.status === 'ACTIVE') {
+      const applicants = await User.find({ role: 'applicant' }).select('_id');
+      const company = await Company.findById(req.user.companyId);
+      const companyName = company?.name || 'A company';
+      for (const applicant of applicants) {
+        const jobSynthKey = `synth-job-${job._id}`;
+        await Notification.findOneAndUpdate(
+          { userId: applicant._id, synthKey: jobSynthKey },
+          {
+            $setOnInsert: {
+              userId: applicant._id,
+              synthKey: jobSynthKey,
+              title: 'New Job Opening',
+              message: `${companyName} just posted a new opening: "${job.title}". Check if your skills match!`,
+              type: 'NEW_JOB',
+              link: 'Browse',
+              metadata: { jobId: String(job._id) },
+              read: false,
+            }
+          },
+          { upsert: true, new: true }
+        ).catch((e) => console.error('Job notification error:', e));
+      }
+    }
+
     res.status(201).json({ message: 'Job posted successfully!', job });
   } catch (err) {
     res.status(500).json({ error: 'Failed to create job posting.' });
@@ -189,24 +216,54 @@ router.post('/apply', requireAuth, requireRole('applicant'), upload.single('resu
       return res.status(400).json({ error: 'You have already applied for this position.' });
     }
 
+    // Resolve dynamic host URL (supports localhost or live Render domain)
+    const baseUrl = (process.env.SERVER_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    let resumeUrl = req.file ? `${baseUrl}/uploads/${req.file.filename}` : '';
+
+    // If candidate didn't upload a new file on apply, fallback to their saved profile resume
+    let resumeFileName = req.file ? req.file.originalname : '';
+    if (!resumeUrl) {
+      const profile = await ApplicantProfile.findOne({ userId: req.user._id });
+      if (profile && profile.resumeUrl) {
+        resumeUrl = profile.resumeUrl;
+        resumeFileName = profile.resumeFileName || 'Profile Resume.pdf';
+      }
+    }
+
     const application = await Application.create({
       jobId,
       applicantId: req.user._id,
-      resumeUrl: req.file ? `http://localhost:5001/uploads/${req.file.filename}` : '',
+      resumeUrl,
+      resumeFileName,
       coverLetter: coverLetter || '',
     });
     await ApplicationStatusHistory.create({ applicationId: application._id, status: 'Applied', changedBy: req.user._id });
-    
-    // Notify recruiter of new applicant
-    if (job.postedBy) {
-      await Notification.create({
-        userId: job.postedBy,
-        title: 'New Candidate Applied',
-        message: `${req.user.name || 'A candidate'} submitted an application for "${job.title}".`,
-        type: 'NEW_APPLICATION',
-        link: String(application._id),
-        metadata: { applicationId: application._id, candidateId: req.user._id, jobTitle: job.title },
-      }).catch((e) => console.error('Notification creation error:', e));
+
+
+    // Notify all recruiters of the company for new applicant (idempotent, 1 per recruiter)
+    const companyRecruiters = await User.find({ companyId: job.companyId, role: 'recruiter' }).select('_id');
+    const recruiterIds = companyRecruiters.length > 0
+      ? companyRecruiters.map((r) => r._id)
+      : (job.postedBy ? [job.postedBy] : []);
+
+    for (const recId of recruiterIds) {
+      const appSynthKey = `synth-app-${application._id}`;
+      await Notification.findOneAndUpdate(
+        { userId: recId, synthKey: appSynthKey },
+        {
+          $setOnInsert: {
+            userId: recId,
+            synthKey: appSynthKey,
+            title: 'New Candidate Applied',
+            message: `${req.user.name || 'A candidate'} submitted an application for "${job.title}".`,
+            type: 'NEW_APPLICATION',
+            link: String(application._id),
+            metadata: { applicationId: application._id, candidateId: req.user._id, jobTitle: job.title },
+            read: false,
+          }
+        },
+        { upsert: true, new: true }
+      ).catch((e) => console.error('Notification creation error:', e));
     }
 
     res.status(201).json({ message: 'Job application submitted successfully!', application });
@@ -223,10 +280,10 @@ router.get('/applications/:recruiterId', requireAuth, requireRole('recruiter'), 
     const applications = await Application.find({ jobId: { $in: jobIds } })
       .populate('applicantId', 'name email')
       .populate({ path: 'jobId', select: 'title department location employmentType requirements description companyId', populate: { path: 'companyId', select: 'name' } });
-    
+
     const applicationIds = applications.map((application) => application._id);
     const histories = await ApplicationStatusHistory.find({ applicationId: { $in: applicationIds } }).sort({ createdAt: 1 });
-    
+
     // Fetch applicant profiles to provide real candidate skills and compute dynamic match fit
     const applicantUserIds = applications.map((app) => app.applicantId?._id).filter(Boolean);
     const profiles = await ApplicantProfile.find({ userId: { $in: applicantUserIds } });
@@ -256,10 +313,13 @@ router.get('/applications/:recruiterId', requireAuth, requireRole('recruiter'), 
 
       return {
         ...application.toObject(),
+        resumeUrl: application.resumeUrl || candidateProfile?.resumeUrl || '',
+        resumeFileName: application.resumeFileName || candidateProfile?.resumeFileName || '',
         candidateProfile: candidateProfile || null,
         match,
         statusHistory: histories.filter((history) => String(history.applicationId) === String(application._id)),
       };
+
     }));
   } catch (err) {
     console.error('Failed to fetch recruiter applications:', err);
@@ -272,7 +332,7 @@ router.patch('/applications/:appId/status', requireAuth, requireRole('recruiter'
     const { status } = req.body;
     if (!statusValues.includes(status)) return res.status(400).json({ error: 'Invalid application status.' });
 
-    const application = await Application.findById(req.params.appId).populate('jobId', 'companyId');
+    const application = await Application.findById(req.params.appId).populate('jobId', 'title companyId');
     if (!application || String(application.jobId.companyId) !== String(req.user.companyId)) {
       return res.status(404).json({ error: 'Application not found.' });
     }
@@ -284,16 +344,25 @@ router.patch('/applications/:appId/status', requireAuth, requireRole('recruiter'
     application.status = status;
     await application.save();
     await ApplicationStatusHistory.create({ applicationId: application._id, status, changedBy: req.user._id });
-    
+
     // Notify candidate of status progression
-    await Notification.create({
-      userId: application.applicantId,
-      title: `Application Moved to ${status}`,
-      message: `Your application for "${application.jobId?.title || 'the position'}" has advanced to "${status}".`,
-      type: 'APPLICATION_PROGRESS',
-      link: 'Applications',
-      metadata: { applicationId: application._id, status },
-    }).catch((e) => console.error('Notification creation error:', e));
+    const statSynthKey = `synth-stat-${application._id}-${status}`;
+    await Notification.findOneAndUpdate(
+      { userId: application.applicantId, synthKey: statSynthKey },
+      {
+        $setOnInsert: {
+          userId: application.applicantId,
+          synthKey: statSynthKey,
+          title: `Application Moved to ${status}`,
+          message: `Your application for "${application.jobId?.title || 'the position'}" has advanced to "${status}".`,
+          type: 'APPLICATION_PROGRESS',
+          link: 'Applications',
+          metadata: { applicationId: application._id, status },
+          read: false,
+        }
+      },
+      { upsert: true, new: true }
+    ).catch((e) => console.error('Notification creation error:', e));
 
     const statusHistory = await ApplicationStatusHistory.find({ applicationId: application._id }).sort({ createdAt: 1 });
     res.json({ message: 'Application status updated!', application, statusHistory });
@@ -314,33 +383,68 @@ router.patch('/applications/:appId/interview', requireAuth, requireRole('recruit
       return res.status(404).json({ error: 'Application not found.' });
     }
 
+    let cleanLocation = (location || '').trim();
+    if (cleanLocation) {
+      if (!cleanLocation.startsWith('http://') && !cleanLocation.startsWith('https://')) {
+        cleanLocation = `https://${cleanLocation}`;
+      }
+      try {
+        const parsed = new URL(cleanLocation);
+        if (!parsed.hostname || !parsed.hostname.includes('.') || parsed.hostname.includes(' ')) {
+          return res.status(400).json({ error: 'Interview link must be a valid meeting URL (e.g. Google Meet, Zoom) or map location link (e.g. Google Maps).' });
+        }
+      } catch {
+        return res.status(400).json({ error: 'Interview link must be a valid meeting URL (e.g. Google Meet, Zoom) or map location link (e.g. Google Maps).' });
+      }
+    }
+
     application.interviewScheduledAt = new Date(scheduledAt);
     application.interviewRound = round || 'Assessment';
-    application.interviewLocation = location || '';
+    application.interviewLocation = cleanLocation;
     application.interviewNotes = notes || '';
     application.status = 'Interviewing';
     await application.save();
     await ApplicationStatusHistory.create({ applicationId: application._id, status: 'Interviewing', changedBy: req.user._id });
-    
+
+    const intTimestamp = new Date(scheduledAt).getTime();
+    const appIntSynthKey = `synth-appint-${application._id}-${intTimestamp}`;
+
     // Notify candidate of interview
-    await Notification.create({
-      userId: application.applicantId,
-      title: 'Interview Scheduled',
-      message: `An interview (${round || 'Assessment'}) has been scheduled for "${application.jobId?.title || 'your applied position'}" on ${new Date(scheduledAt).toLocaleString()}.`,
-      type: 'INTERVIEW_SCHEDULED',
-      link: 'Applications',
-      metadata: { applicationId: application._id, scheduledAt },
-    }).catch((e) => console.error('Notification creation error:', e));
+    await Notification.findOneAndUpdate(
+      { userId: application.applicantId, synthKey: appIntSynthKey },
+      {
+        $setOnInsert: {
+          userId: application.applicantId,
+          synthKey: appIntSynthKey,
+          title: 'Interview Scheduled',
+          message: `An interview (${round || 'Assessment'}) has been scheduled for "${application.jobId?.title || 'your applied position'}" on ${new Date(scheduledAt).toLocaleString()}.`,
+          type: 'INTERVIEW_SCHEDULED',
+          link: 'Applications',
+          metadata: { applicationId: application._id, scheduledAt },
+          read: false,
+        }
+      },
+      { upsert: true, new: true }
+    ).catch((e) => console.error('Notification creation error:', e));
 
     // Notify recruiter of confirmation
-    await Notification.create({
-      userId: req.user._id,
-      title: 'Interview Confirmed',
-      message: `Interview (${round || 'Assessment'}) scheduled on ${new Date(scheduledAt).toLocaleString()}.`,
-      type: 'INTERVIEW_SCHEDULED',
-      link: 'Interviews',
-      metadata: { applicationId: application._id, scheduledAt },
-    }).catch((e) => console.error('Notification creation error:', e));
+    const recIntSynthKey = `synth-int-${application._id}-${intTimestamp}`;
+    await Notification.findOneAndUpdate(
+      { userId: req.user._id, synthKey: recIntSynthKey },
+      {
+        $setOnInsert: {
+          userId: req.user._id,
+          synthKey: recIntSynthKey,
+          title: 'Interview Confirmed',
+          message: `Interview (${round || 'Assessment'}) scheduled on ${new Date(scheduledAt).toLocaleString()}.`,
+          type: 'INTERVIEW_SCHEDULED',
+          link: 'Interviews',
+          metadata: { applicationId: application._id, scheduledAt },
+          read: false,
+        }
+      },
+      { upsert: true, new: true }
+    ).catch((e) => console.error('Notification creation error:', e));
 
     const statusHistory = await ApplicationStatusHistory.find({ applicationId: application._id }).sort({ createdAt: 1 });
     res.json({ message: 'Interview scheduled.', application, statusHistory });
@@ -355,7 +459,7 @@ router.get('/candidate/applications/:candidateId', requireAuth, requireRole('app
       .populate({ path: 'jobId', select: 'title department location employmentType requirements description companyId', populate: { path: 'companyId', select: 'name website description logo' } });
     const applicationIds = applications.map((application) => application._id);
     const histories = await ApplicationStatusHistory.find({ applicationId: { $in: applicationIds } }).sort({ createdAt: 1 });
-    
+
     const candidateProfile = await ApplicantProfile.findOne({ userId: req.user._id });
 
     res.json(applications.map((application) => {
@@ -376,6 +480,8 @@ router.get('/candidate/applications/:candidateId', requireAuth, requireRole('app
 
       return {
         ...application.toObject(),
+        resumeUrl: application.resumeUrl || candidateProfile?.resumeUrl || '',
+        resumeFileName: application.resumeFileName || candidateProfile?.resumeFileName || '',
         candidateProfile: candidateProfile || null,
         match,
         statusHistory: histories.filter((history) => String(history.applicationId) === String(application._id)),

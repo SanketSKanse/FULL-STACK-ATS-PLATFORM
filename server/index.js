@@ -11,10 +11,18 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
+const fs = require('fs');
 const path = require('path');
 
+// Ensure uploads folder exists on any cloud environment (Render, Railway, etc.)
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Make the uploads folder publicly accessible to view PDFs
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadsDir));
+
 
 // 3. Routes (authRoutes must come AFTER 'app' is initialized)
 const authRoutes = require('./routes/auth');

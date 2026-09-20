@@ -7,6 +7,10 @@ const notificationSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  synthKey: {
+    type: String,
+    index: true,
+  },
   title: {
     type: String,
     required: true,
@@ -34,5 +38,7 @@ const notificationSchema = new mongoose.Schema({
     index: true,
   },
 }, { timestamps: true });
+
+notificationSchema.index({ userId: 1, synthKey: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Notification', notificationSchema);

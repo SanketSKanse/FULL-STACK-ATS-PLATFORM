@@ -9,9 +9,15 @@ async function runTests() {
 
   // TEST 1: Unit Test Resume Parser with actual sample PDF
   console.log('TEST 1: Resume Parser Service with sample PDF...');
-  const pdfPath = path.join(__dirname, 'uploads/1789150278938-Resume_SanketSKanse.pdf');
-  if (!fs.existsSync(pdfPath)) {
-    throw new Error('Sample PDF file not found at: ' + pdfPath);
+  const fixturePdf = path.join(__dirname, 'fixtures/sample-resume.pdf');
+  const uploadsDir = path.join(__dirname, 'uploads');
+  let pdfPath = fs.existsSync(fixturePdf) ? fixturePdf : null;
+  if (!pdfPath && fs.existsSync(uploadsDir)) {
+    const files = fs.readdirSync(uploadsDir).filter(f => f.endsWith('.pdf'));
+    if (files.length > 0) pdfPath = path.join(uploadsDir, files[0]);
+  }
+  if (!pdfPath) {
+    throw new Error('Sample PDF file not found in fixtures/ or uploads/');
   }
 
   const pdfBuffer = fs.readFileSync(pdfPath);

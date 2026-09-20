@@ -13,10 +13,10 @@ const jobSchema = new mongoose.Schema({
     ref: 'Company',
     default: null
   },
-  postedBy: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true 
+  postedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   }
 }, { timestamps: true });
 

@@ -1,10 +1,34 @@
 const express = require('express');
+const path = require('path');
+const multer = require('multer');
 const ApplicantProfile = require('../models/applicantProfile');
 const Job = require('../models/job');
 const Application = require('../models/application');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Disk storage for candidate profile resume uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are supported.'));
+    }
+  }
+});
+
 
 const profileFields = [
   'phone', 'location', 'headline', 'summary', 'interests', 'preferredJobTitles',
@@ -110,6 +134,45 @@ router.put('/profile', requireAuth, requireRole('applicant'), async (req, res) =
     res.json({ message: 'Profile saved successfully.', profile, completion: completion(profile) });
   } catch (err) {
     res.status(400).json({ error: 'Profile could not be saved. Check the submitted details.' });
+  }
+});
+
+/**
+ * POST /api/applicant/resume
+ * Uploads a candidate's resume PDF directly to their profile, saving to disk and updating profile metadata
+ */
+router.post('/resume', requireAuth, requireRole('applicant'), upload.single('resume'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Please select a valid PDF file to upload.' });
+    }
+
+    const baseUrl = (process.env.SERVER_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const resumeUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    const resumeFileName = req.file.originalname;
+
+    const profile = await ApplicantProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      {
+        $set: {
+          resumeUrl,
+          resumeFileName,
+          resumeUploadedAt: new Date(),
+        }
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({
+      message: 'Resume uploaded successfully!',
+      resumeUrl,
+      resumeFileName,
+      profile,
+      completion: completion(profile)
+    });
+  } catch (err) {
+    console.error('Applicant resume upload failed:', err);
+    res.status(500).json({ error: err.message || 'Failed to upload resume.' });
   }
 });
 

@@ -17,6 +17,7 @@ const applicationSchema = new mongoose.Schema({
     default: 'Applied'
   },
   resumeUrl: { type: String, default: '' },
+  resumeFileName: { type: String, default: '' },
   coverLetter: { type: String, default: '' },
   interviewScheduledAt: { type: Date, default: null },
   interviewRound: { type: String, default: '' },
