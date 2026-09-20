@@ -10,6 +10,26 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* THE OATMEAL & INK PALETTE (Linear Design System) */
+  --oatmeal: #F3EDE2;
+  /* Warm Oatmeal */
+  --ink: #2B2B2B;
+  /* Deep Charcoal */
+  --ink-dark: #1A1A1A;
+  /* Rich Ink */
+  --textured-gray: #D8D1C7;
+  /* Textured Gray */
+  --panel-ivory: #FFFFFF;
+  /* Unified Pure White Card Surface */
+  --card-white: #FFFFFF;
+  /* Pure White Card Surface */
+  --charcoal-sub: #4A4A4A;
+  /* Readable Subtitle Charcoal */
+  --charcoal-muted: #7A746D;
+  /* Eyebrow Label Warm Muted */
+  --oatmeal-hover: #ECE4D6;
+  /* Warm Oatmeal Hover Tone */
 }
 
 * {
@@ -17,1082 +37,1026 @@
 }
 
 /* =========================================================================
-   PALETTE DEFINITIONS (from user reference image):
-   1. #0F2854 - Deep Midnight Navy Blue (darkest shade)
-   2. #1C4D8D - Royal Ocean Blue (secondary deep shade)
-   3. #4988C4 - Cerulean / Sky Blue (vibrant midtone)
-   4. #BDE8F5 - Soft Powder / Ice Blue (lightest tint)
+   1. GLOBAL CANVAS: Warm Oatmeal (#F3EDE2) Foundation
    ========================================================================= */
-
-/* =========================================================================
-   1. DARK THEME: Deep Midnight Navy (#0F2854) Base with Ocean & Cerulean Glow
-   ========================================================================= */
-html.dark,
-html[data-theme="dark"],
-body[data-theme="dark"],
-.dark .app-shell,
-[data-theme="dark"] .app-shell {
-  background: radial-gradient(circle at 18% 22%, #143265 0%, #0c2044 42%, #07152d 100%), #07152d !important;
-  background-attachment: fixed !important;
-  color: #ffffff !important;
-  color-scheme: dark;
+html,
+body,
+#root {
+  background-color: var(--oatmeal) !important;
+  color: var(--ink) !important;
+  min-height: 100vh;
 }
 
-/* Dark Theme Typography */
-html.dark .app-shell,
-[data-theme="dark"] .app-shell {
-  color: #ffffff;
+.app-shell {
+  background-color: var(--oatmeal) !important;
+  color: var(--ink) !important;
+  min-height: 100vh;
 }
 
-html.dark .app-shell h1,
-html.dark .app-shell h2,
-html.dark .app-shell h3,
-html.dark .app-shell h4,
-html.dark .app-shell .heading-title,
-html.dark .app-shell .text-slate-900,
-html.dark .app-shell .text-slate-800,
-html.dark .app-shell .text-slate-700,
-[data-theme="dark"] .app-shell h1,
-[data-theme="dark"] .app-shell h2,
-[data-theme="dark"] .app-shell h3,
-[data-theme="dark"] .app-shell h4,
-[data-theme="dark"] .app-shell .heading-title,
-[data-theme="dark"] .app-shell .text-slate-900,
-[data-theme="dark"] .app-shell .text-slate-800,
-[data-theme="dark"] .app-shell .text-slate-700 {
-  color: #ffffff !important;
-}
-
-html.dark .app-shell .text-slate-600,
-html.dark .app-shell .text-slate-500,
-html.dark .app-shell .text-slate-300,
-[data-theme="dark"] .app-shell .text-slate-600,
-[data-theme="dark"] .app-shell .text-slate-500,
-[data-theme="dark"] .app-shell .text-slate-300 {
-  color: #BDE8F5 !important; /* Soft Ice Blue */
-}
-
-html.dark .app-shell .text-slate-400,
-[data-theme="dark"] .app-shell .text-slate-400 {
-  color: rgba(189, 232, 245, 0.65) !important;
-}
-
-/* Dark Theme: Frosted Midnight Glass Boxes & Containers */
-html.dark .glass-box,
-html.dark .glass-container,
-html.dark .ats-card,
-html.dark .surface,
-[data-theme="dark"] .glass-box,
-[data-theme="dark"] .glass-container,
-[data-theme="dark"] .ats-card,
-[data-theme="dark"] .surface,
-html.dark .app-shell .bg-white,
-html.dark .app-shell .bg-slate-50,
-html.dark .app-shell .bg-slate-50\/60,
-html.dark .app-shell .bg-slate-50\/70,
-html.dark .app-shell .bg-slate-50\/50,
-html.dark .app-shell .bg-slate-50\/40,
-html.dark .app-shell .bg-slate-100,
-html.dark .app-shell .bg-\[\#F9FAFB\],
-[data-theme="dark"] .app-shell .bg-white,
-[data-theme="dark"] .app-shell .bg-slate-50,
-[data-theme="dark"] .app-shell .bg-slate-50\/60,
-[data-theme="dark"] .app-shell .bg-slate-50\/70,
-[data-theme="dark"] .app-shell .bg-slate-50\/50,
-[data-theme="dark"] .app-shell .bg-slate-50\/40,
-[data-theme="dark"] .app-shell .bg-slate-100,
-[data-theme="dark"] .app-shell .bg-\[\#F9FAFB\] {
-  background: rgba(15, 40, 84, 0.45) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-color: rgba(73, 136, 196, 0.22) !important;
-  box-shadow: 0 12px 36px -8px rgba(7, 21, 45, 0.7), 0 0 20px -6px rgba(28, 77, 141, 0.2) !important;
-  color: #ffffff !important;
-}
-
-/* Dark Theme: Containers NEVER hover */
-html.dark .glass-container,
-html.dark .glass-container:hover,
-html.dark [data-theme="dark"] .glass-container,
-html.dark [data-theme="dark"] .glass-container:hover,
-html.dark .main-container,
-html.dark .main-container:hover,
-html.dark .glass-box:has(.glass-box):hover,
-html.dark .glass-box:has(.glass-component):hover,
-html.dark .glass-box:has(.glass-pill):hover,
-html.dark .glass-box:has(button):hover,
-html.dark .glass-box:has(input):hover,
-html.dark .glass-box:has(table):hover,
-[data-theme="dark"] .glass-container,
-[data-theme="dark"] .glass-container:hover,
-[data-theme="dark"] .main-container,
-[data-theme="dark"] .main-container:hover,
-[data-theme="dark"] .glass-box:has(.glass-box):hover,
-[data-theme="dark"] .glass-box:has(.glass-component):hover,
-[data-theme="dark"] .glass-box:has(.glass-pill):hover,
-[data-theme="dark"] .glass-box:has(button):hover,
-[data-theme="dark"] .glass-box:has(input):hover,
-[data-theme="dark"] .glass-box:has(table):hover {
-  background: rgba(15, 40, 84, 0.45) !important;
-  border-color: rgba(73, 136, 196, 0.22) !important;
-  box-shadow: 0 12px 36px -8px rgba(7, 21, 45, 0.7), 0 0 20px -6px rgba(28, 77, 141, 0.2) !important;
-  transform: none !important;
-}
-
-/* Dark Theme: Components Hover with Cerulean Glow */
-html.dark .glass-component,
-html.dark .glass-box {
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-html.dark .glass-component:hover,
-html.dark .glass-container .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-html.dark .glass-container .glass-component:hover,
-html.dark .glass-box .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-html.dark .glass-box-hover:hover,
-html.dark button.glass-box:hover,
-html.dark a.glass-box:hover,
-html.dark .cursor-pointer.glass-box:hover,
-[data-theme="dark"] .glass-component:hover,
-[data-theme="dark"] .glass-container .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-[data-theme="dark"] .glass-container .glass-component:hover,
-[data-theme="dark"] .glass-box .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-[data-theme="dark"] .glass-box-hover:hover,
-[data-theme="dark"] button.glass-box:hover,
-[data-theme="dark"] a.glass-box:hover,
-[data-theme="dark"] .cursor-pointer.glass-box:hover {
-  background: rgba(73, 136, 196, 0.2) !important;
-  border-color: rgba(73, 136, 196, 0.5) !important;
-  box-shadow: 0 8px 24px -4px rgba(7, 21, 45, 0.6), 0 0 16px rgba(73, 136, 196, 0.25), inset 0 1px 0 rgba(189, 232, 245, 0.2) !important;
-}
-
-/* Dark Theme Pills */
-html.dark .glass-pill,
-[data-theme="dark"] .glass-pill,
-html.dark .app-shell .rounded-full.bg-slate-100,
-[data-theme="dark"] .app-shell .rounded-full.bg-slate-100 {
-  background: rgba(189, 232, 245, 0.1) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(73, 136, 196, 0.3) !important;
-  color: #BDE8F5 !important;
-}
-
-/* Dark Theme Header & Sidebar */
-html.dark .ats-header,
-[data-theme="dark"] .ats-header,
-html.dark .app-shell header,
-[data-theme="dark"] .app-shell header {
-  background: rgba(11, 28, 59, 0.72) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border-bottom: 1px solid rgba(73, 136, 196, 0.2) !important;
-  box-shadow: 0 4px 24px -4px rgba(7, 21, 45, 0.6) !important;
-}
-
-html.dark .ats-sidebar,
-[data-theme="dark"] .ats-sidebar,
-html.dark .app-shell aside,
-[data-theme="dark"] .app-shell aside {
-  background: rgba(9, 24, 51, 0.8) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border-right: 1px solid rgba(73, 136, 196, 0.2) !important;
-  box-shadow: 4px 0 24px -4px rgba(7, 21, 45, 0.6) !important;
-}
-
-/* Dark Theme Active Sidebar Nav Item (Royal Ocean to Cerulean Blue Pill) */
-html.dark .nav-item-active,
-[data-theme="dark"] .nav-item-active {
-  background: linear-gradient(135deg, rgba(28, 77, 141, 0.8) 0%, rgba(73, 136, 196, 0.85) 100%) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(189, 232, 245, 0.45) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 16px -2px rgba(28, 77, 141, 0.5), inset 0 1px 0 rgba(189, 232, 245, 0.3) !important;
-}
-
-/* Dark Theme Brand/Avatar Badges */
-html.dark .brand-badge,
-[data-theme="dark"] .brand-badge {
-  background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%) !important;
-  border: 1px solid rgba(189, 232, 245, 0.35) !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 10px rgba(73, 136, 196, 0.4) !important;
-}
-
-/* Dark Theme Header Primary Action Button */
-html.dark .btn-header-primary,
-[data-theme="dark"] .btn-header-primary {
-  background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%) !important;
-  border: 1px solid rgba(189, 232, 245, 0.4) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  box-shadow: 0 4px 20px -2px rgba(28, 77, 141, 0.55), inset 0 1px 0 rgba(189, 232, 245, 0.35) !important;
-  color: #ffffff !important;
-}
-
-/* Dark Theme Inputs & Selects */
-html.dark .glass-input,
-[data-theme="dark"] .glass-input,
-html.dark .app-shell input:not([type="checkbox"]):not([type="radio"]),
-html.dark .app-shell select,
-html.dark .app-shell textarea,
-[data-theme="dark"] .app-shell input:not([type="checkbox"]):not([type="radio"]),
-[data-theme="dark"] .app-shell select,
-[data-theme="dark"] .app-shell textarea {
-  background: rgba(15, 40, 84, 0.4) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(73, 136, 196, 0.3) !important;
-  color: #ffffff !important;
-}
-
-html.dark .glass-input::placeholder,
-[data-theme="dark"] .glass-input::placeholder,
-html.dark .app-shell input::placeholder,
-html.dark .app-shell textarea::placeholder,
-[data-theme="dark"] .app-shell input::placeholder,
-[data-theme="dark"] .app-shell textarea::placeholder {
-  color: rgba(189, 232, 245, 0.45) !important;
-}
-
-/* Dark Theme Accent Overrides */
-html.dark .app-shell .bg-indigo-600,
-html.dark .app-shell .bg-indigo-500,
-[data-theme="dark"] .app-shell .bg-indigo-600,
-[data-theme="dark"] .app-shell .bg-indigo-500 {
-  background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%) !important;
-  color: #ffffff !important;
-}
-
-html.dark .app-shell .text-indigo-400,
-html.dark .app-shell .text-indigo-300,
-html.dark .app-shell .text-indigo-200,
-[data-theme="dark"] .app-shell .text-indigo-400,
-[data-theme="dark"] .app-shell .text-indigo-300,
-[data-theme="dark"] .app-shell .text-indigo-200 {
-  color: #4988C4 !important;
-}
-
-html.dark .app-shell .border-indigo-400,
-html.dark .app-shell .border-indigo-500,
-html.dark .app-shell .border-indigo-400\/30,
-html.dark .app-shell .border-indigo-400\/40,
-html.dark .app-shell .border-indigo-500\/30,
-[data-theme="dark"] .app-shell .border-indigo-400,
-[data-theme="dark"] .app-shell .border-indigo-500,
-[data-theme="dark"] .app-shell .border-indigo-400\/30,
-[data-theme="dark"] .app-shell .border-indigo-400\/40,
-[data-theme="dark"] .app-shell .border-indigo-500\/30 {
-  border-color: rgba(73, 136, 196, 0.4) !important;
-}
-
-html.dark .app-shell .bg-indigo-500\/20,
-html.dark .app-shell .bg-indigo-500\/15,
-html.dark .app-shell .bg-indigo-500\/10,
-html.dark .app-shell .bg-indigo-500\/30,
-html.dark .app-shell .bg-indigo-600\/30,
-[data-theme="dark"] .app-shell .bg-indigo-500\/20,
-[data-theme="dark"] .app-shell .bg-indigo-500\/15,
-[data-theme="dark"] .app-shell .bg-indigo-500\/10,
-[data-theme="dark"] .app-shell .bg-indigo-500\/30,
-[data-theme="dark"] .app-shell .bg-indigo-600\/30 {
-  background: rgba(73, 136, 196, 0.2) !important;
-}
-
-/* Custom subtle scrollbar for sidebar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(73, 136, 196, 0.35);
-  border-radius: 4px;
-}
-
-
-/* =========================================================================
-   2. LIGHT THEME: Soft Ice/Powder Blue (#BDE8F5) Canvas with Midnight Navy (#0F2854)
-   ========================================================================= */
-html.light,
-html:not(.dark),
-body:not(.dark),
-html[data-theme="light"],
-body[data-theme="light"],
-.light .app-shell,
-[data-theme="light"] .app-shell {
-  background: linear-gradient(145deg, #BDE8F5 0%, #d6f2fa 50%, #c2ecf7 100%), #BDE8F5 !important;
-  background-attachment: fixed !important;
-  color: #0F2854 !important;
-  color-scheme: light;
-}
-
-/* Light Theme Typography */
-html.light .app-shell,
-html:not(.dark) .app-shell,
-[data-theme="light"] .app-shell {
-  color: #0F2854;
-}
-
-html.light .app-shell h1,
-html.light .app-shell h2,
-html.light .app-shell h3,
-html.light .app-shell h4,
-html.light .app-shell .heading-title,
-html.light .app-shell .text-slate-900,
-html.light .app-shell .text-slate-800,
-html.light .app-shell .text-slate-700,
-html:not(.dark) .app-shell h1,
-html:not(.dark) .app-shell h2,
-html:not(.dark) .app-shell h3,
-html:not(.dark) .app-shell h4,
-html:not(.dark) .app-shell .heading-title,
-html:not(.dark) .app-shell .text-slate-900,
-html:not(.dark) .app-shell .text-slate-800,
-html:not(.dark) .app-shell .text-slate-700,
-[data-theme="light"] .app-shell h1,
-[data-theme="light"] .app-shell h2,
-[data-theme="light"] .app-shell h3,
-[data-theme="light"] .app-shell h4,
-[data-theme="light"] .app-shell .heading-title,
-[data-theme="light"] .app-shell .text-slate-900,
-[data-theme="light"] .app-shell .text-slate-800,
-[data-theme="light"] .app-shell .text-slate-700 {
-  color: #0F2854 !important; /* Deep Midnight Navy */
-}
-
-html.light .app-shell .text-slate-600,
-html.light .app-shell .text-slate-500,
-html.light .app-shell .text-slate-300,
-html:not(.dark) .app-shell .text-slate-600,
-html:not(.dark) .app-shell .text-slate-500,
-html:not(.dark) .app-shell .text-slate-300,
-[data-theme="light"] .app-shell .text-slate-600,
-[data-theme="light"] .app-shell .text-slate-500,
-[data-theme="light"] .app-shell .text-slate-300 {
-  color: #1C4D8D !important; /* Royal Ocean Blue contrast */
-}
-
-html.light .app-shell .text-slate-400,
-html:not(.dark) .app-shell .text-slate-400,
-[data-theme="light"] .app-shell .text-slate-400 {
-  color: #4988C4 !important;
-}
-
-html.light .app-shell .text-slate-200,
-html:not(.dark) .app-shell .text-slate-200,
-[data-theme="light"] .app-shell .text-slate-200 {
-  color: #1C4D8D !important;
-}
-
-/* Light Theme: Invert text-white to Deep Midnight Navy (#0F2854) for complete readability */
-html.light .app-shell .text-white,
-html:not(.dark) .app-shell .text-white,
-[data-theme="light"] .app-shell .text-white {
-  color: #0F2854 !important;
-}
-
-/* Light Theme Exceptions: Elements that must keep white text over solid dark accents */
-html.light .app-shell .nav-item-active,
-html.light .app-shell .nav-item-active *,
-html.light .app-shell .nav-item-active .text-white,
-html.light .app-shell .btn-header-primary,
-html.light .app-shell .btn-header-primary *,
-html.light .app-shell .btn-header-primary .text-white,
-html.light .app-shell .brand-badge,
-html.light .app-shell .brand-badge *,
-html.light .app-shell .brand-badge .text-white,
-html.light .app-shell .bg-indigo-600,
-html.light .app-shell .bg-indigo-600 *,
-html.light .app-shell .bg-indigo-600 .text-white,
-html.light .app-shell .bg-rose-500,
-html.light .app-shell .bg-rose-500 *,
-html.light .app-shell .bg-rose-500 .text-white,
-html.light .app-shell .bg-red-500,
-html.light .app-shell .bg-red-500 *,
-html.light .app-shell .bg-emerald-600,
-html.light .app-shell .bg-emerald-600 *,
-html.light .app-shell .bg-blue-600,
-html.light .app-shell .bg-blue-600 *,
-html:not(.dark) .app-shell .nav-item-active,
-html:not(.dark) .app-shell .nav-item-active *,
-html:not(.dark) .app-shell .nav-item-active .text-white,
-html:not(.dark) .app-shell .btn-header-primary,
-html:not(.dark) .app-shell .btn-header-primary *,
-html:not(.dark) .app-shell .btn-header-primary .text-white,
-html:not(.dark) .app-shell .brand-badge,
-html:not(.dark) .app-shell .brand-badge *,
-html:not(.dark) .app-shell .brand-badge .text-white,
-html:not(.dark) .app-shell .bg-indigo-600,
-html:not(.dark) .app-shell .bg-indigo-600 *,
-html:not(.dark) .app-shell .bg-rose-500,
-html:not(.dark) .app-shell .bg-rose-500 *,
-html:not(.dark) .app-shell .bg-red-500,
-html:not(.dark) .app-shell .bg-emerald-600,
-html:not(.dark) .app-shell .bg-emerald-600 *,
-[data-theme="light"] .app-shell .nav-item-active,
-[data-theme="light"] .app-shell .nav-item-active *,
-[data-theme="light"] .app-shell .nav-item-active .text-white,
-[data-theme="light"] .app-shell .btn-header-primary,
-[data-theme="light"] .app-shell .btn-header-primary *,
-[data-theme="light"] .app-shell .btn-header-primary .text-white,
-[data-theme="light"] .app-shell .brand-badge,
-[data-theme="light"] .app-shell .brand-badge *,
-[data-theme="light"] .app-shell .brand-badge .text-white,
-[data-theme="light"] .app-shell .bg-indigo-600,
-[data-theme="light"] .app-shell .bg-indigo-600 *,
-[data-theme="light"] .app-shell .bg-rose-500,
-[data-theme="light"] .app-shell .bg-rose-500 *,
-[data-theme="light"] .app-shell .bg-red-500,
-[data-theme="light"] .app-shell .bg-emerald-600,
-[data-theme="light"] .app-shell .bg-emerald-600 * {
-  color: #ffffff !important;
-}
-
-/* Light Theme: Crisp Ice-White Cards & Containers */
-html.light .glass-box,
-html.light .glass-container,
-html.light .ats-card,
-html.light .surface,
-html:not(.dark) .glass-box,
-html:not(.dark) .glass-container,
-html:not(.dark) .ats-card,
-html:not(.dark) .surface,
-[data-theme="light"] .glass-box,
-[data-theme="light"] .glass-container,
-[data-theme="light"] .ats-card,
-[data-theme="light"] .surface,
-html.light .app-shell .bg-white,
-html.light .app-shell .bg-slate-50,
-html.light .app-shell .bg-slate-50\/60,
-html.light .app-shell .bg-slate-50\/70,
-html.light .app-shell .bg-slate-50\/50,
-html.light .app-shell .bg-slate-50\/40,
-html.light .app-shell .bg-slate-100,
-html.light .app-shell .bg-\[\#F9FAFB\],
-html:not(.dark) .app-shell .bg-white,
-html:not(.dark) .app-shell .bg-slate-50,
-html:not(.dark) .app-shell .bg-slate-50\/60,
-html:not(.dark) .app-shell .bg-slate-50\/70,
-html:not(.dark) .app-shell .bg-slate-50\/50,
-html:not(.dark) .app-shell .bg-slate-50\/40,
-html:not(.dark) .app-shell .bg-slate-100,
-html:not(.dark) .app-shell .bg-\[\#F9FAFB\],
-[data-theme="light"] .app-shell .bg-white,
-[data-theme="light"] .app-shell .bg-slate-50,
-[data-theme="light"] .app-shell .bg-slate-50\/60,
-[data-theme="light"] .app-shell .bg-slate-50\/70,
-[data-theme="light"] .app-shell .bg-slate-50\/50,
-[data-theme="light"] .app-shell .bg-slate-50\/40,
-[data-theme="light"] .app-shell .bg-slate-100,
-[data-theme="light"] .app-shell .bg-\[\#F9FAFB\] {
-  background: rgba(255, 255, 255, 0.88) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-  border-color: rgba(28, 77, 141, 0.18) !important;
-  box-shadow: 0 10px 25px -5px rgba(15, 40, 84, 0.08), 0 4px 12px rgba(15, 40, 84, 0.04) !important;
-  color: #0F2854 !important;
-}
-
-/* Light Theme: Containers NEVER hover */
-html.light .glass-container,
-html.light .glass-container:hover,
-html:not(.dark) .glass-container,
-html:not(.dark) .glass-container:hover,
-[data-theme="light"] .glass-container,
-[data-theme="light"] .glass-container:hover,
-html.light .main-container,
-html.light .main-container:hover,
-html:not(.dark) .main-container,
-html:not(.dark) .main-container:hover,
-[data-theme="light"] .main-container,
-[data-theme="light"] .main-container:hover,
-html.light .glass-box:has(.glass-box):hover,
-html.light .glass-box:has(.glass-component):hover,
-html.light .glass-box:has(.glass-pill):hover,
-html.light .glass-box:has(button):hover,
-html.light .glass-box:has(input):hover,
-html.light .glass-box:has(table):hover,
-html:not(.dark) .glass-box:has(.glass-box):hover,
-html:not(.dark) .glass-box:has(.glass-component):hover,
-html:not(.dark) .glass-box:has(.glass-pill):hover,
-html:not(.dark) .glass-box:has(button):hover,
-html:not(.dark) .glass-box:has(input):hover,
-html:not(.dark) .glass-box:has(table):hover,
-[data-theme="light"] .glass-box:has(.glass-box):hover,
-[data-theme="light"] .glass-box:has(.glass-component):hover,
-[data-theme="light"] .glass-box:has(.glass-pill):hover,
-[data-theme="light"] .glass-box:has(button):hover,
-[data-theme="light"] .glass-box:has(input):hover,
-[data-theme="light"] .glass-box:has(table):hover {
-  background: rgba(255, 255, 255, 0.88) !important;
-  border-color: rgba(28, 77, 141, 0.18) !important;
-  box-shadow: 0 10px 25px -5px rgba(15, 40, 84, 0.08) !important;
-  transform: none !important;
-}
-
-/* Light Theme: Components Hover with Cerulean Highlight */
-html.light .glass-component:hover,
-html.light .glass-container .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-html.light .glass-container .glass-component:hover,
-html.light .glass-box .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-html.light .glass-box-hover:hover,
-html.light button.glass-box:hover,
-html.light a.glass-box:hover,
-html.light .cursor-pointer.glass-box:hover,
-html:not(.dark) .glass-component:hover,
-html:not(.dark) .glass-container .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-html:not(.dark) .glass-container .glass-component:hover,
-html:not(.dark) .glass-box .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-html:not(.dark) .glass-box-hover:hover,
-html:not(.dark) button.glass-box:hover,
-html:not(.dark) a.glass-box:hover,
-html:not(.dark) .cursor-pointer.glass-box:hover,
-[data-theme="light"] .glass-component:hover,
-[data-theme="light"] .glass-container .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-[data-theme="light"] .glass-container .glass-component:hover,
-[data-theme="light"] .glass-box .glass-box:not(:has(.glass-box)):not(.glass-container):hover,
-[data-theme="light"] .glass-box-hover:hover,
-[data-theme="light"] button.glass-box:hover,
-[data-theme="light"] a.glass-box:hover,
-[data-theme="light"] .cursor-pointer.glass-box:hover {
-  background: rgba(255, 255, 255, 0.98) !important;
-  border-color: rgba(73, 136, 196, 0.45) !important;
-  box-shadow: 0 10px 25px -5px rgba(28, 77, 141, 0.15), 0 0 15px rgba(73, 136, 196, 0.15) !important;
-}
-
-/* Light Theme Pills */
-html.light .glass-pill,
-html:not(.dark) .glass-pill,
-[data-theme="light"] .glass-pill,
-html.light .app-shell .rounded-full.bg-slate-100,
-html:not(.dark) .app-shell .rounded-full.bg-slate-100,
-[data-theme="light"] .app-shell .rounded-full.bg-slate-100 {
-  background: rgba(189, 232, 245, 0.5) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(28, 77, 141, 0.25) !important;
-  color: #0F2854 !important;
-}
-
-/* Light Theme Header & Sidebar */
-html.light .ats-header,
-html:not(.dark) .ats-header,
-[data-theme="light"] .ats-header,
-html.light .app-shell header,
-html:not(.dark) .app-shell header,
-[data-theme="light"] .app-shell header {
-  background: rgba(255, 255, 255, 0.86) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-bottom: 1px solid rgba(28, 77, 141, 0.15) !important;
-  box-shadow: 0 4px 20px rgba(15, 40, 84, 0.05) !important;
-}
-
-html.light .ats-sidebar,
-html:not(.dark) .ats-sidebar,
-[data-theme="light"] .ats-sidebar,
-html.light .app-shell aside,
-html:not(.dark) .app-shell aside,
-[data-theme="light"] .app-shell aside {
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-right: 1px solid rgba(28, 77, 141, 0.15) !important;
-  box-shadow: 4px 0 20px rgba(15, 40, 84, 0.05) !important;
-}
-
-/* Light Theme Active Sidebar Nav Item (Deep Midnight to Ocean Blue Pill) */
-html.light .nav-item-active,
-html:not(.dark) .nav-item-active,
-[data-theme="light"] .nav-item-active {
-  background: linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(15, 40, 84, 0.35) !important;
-}
-
-/* Light Theme Brand/Avatar Badges */
-html.light .brand-badge,
-html:not(.dark) .brand-badge,
-[data-theme="light"] .brand-badge {
-  background: linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%) !important;
-  color: #ffffff !important;
-}
-
-/* Light Theme Header Primary Action Button */
-html.light .btn-header-primary,
-html:not(.dark) .btn-header-primary,
-[data-theme="light"] .btn-header-primary {
-  background: linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(15, 40, 84, 0.35) !important;
-}
-
-/* Light Theme Inputs & Selects */
-html.light .glass-input,
-html:not(.dark) .glass-input,
-[data-theme="light"] .glass-input,
-html.light .app-shell input:not([type="checkbox"]):not([type="radio"]),
-html.light .app-shell select,
-html.light .app-shell textarea,
-html:not(.dark) .app-shell input:not([type="checkbox"]):not([type="radio"]),
-html:not(.dark) .app-shell select,
-html:not(.dark) .app-shell textarea,
-[data-theme="light"] .app-shell input:not([type="checkbox"]):not([type="radio"]),
-[data-theme="light"] .app-shell select,
-[data-theme="light"] .app-shell textarea {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(28, 77, 141, 0.25) !important;
-  color: #0F2854 !important;
-}
-
-html.light .glass-input::placeholder,
-html:not(.dark) .glass-input::placeholder,
-[data-theme="light"] .glass-input::placeholder,
-html.light .app-shell input::placeholder,
-html.light .app-shell textarea::placeholder,
-html:not(.dark) .app-shell input::placeholder,
-html:not(.dark) .app-shell textarea::placeholder,
-[data-theme="light"] .app-shell input::placeholder,
-[data-theme="light"] .app-shell textarea::placeholder {
-  color: rgba(28, 77, 141, 0.5) !important;
-}
-
-/* Light Theme Accent Overrides */
-html.light .app-shell .bg-indigo-600,
-html.light .app-shell .bg-indigo-500,
-html:not(.dark) .app-shell .bg-indigo-600,
-html:not(.dark) .app-shell .bg-indigo-500,
-[data-theme="light"] .app-shell .bg-indigo-600,
-[data-theme="light"] .app-shell .bg-indigo-500 {
-  background: linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%) !important;
-  color: #ffffff !important;
-}
-
-html.light .app-shell .text-indigo-400,
-html.light .app-shell .text-indigo-300,
-html.light .app-shell .text-indigo-200,
-html:not(.dark) .app-shell .text-indigo-400,
-html:not(.dark) .app-shell .text-indigo-300,
-html:not(.dark) .app-shell .text-indigo-200,
-[data-theme="light"] .app-shell .text-indigo-400,
-[data-theme="light"] .app-shell .text-indigo-300,
-[data-theme="light"] .app-shell .text-indigo-200 {
-  color: #1C4D8D !important;
-}
-
-html.light .app-shell .border-indigo-400,
-html.light .app-shell .border-indigo-500,
-html.light .app-shell .border-indigo-400\/30,
-html.light .app-shell .border-indigo-400\/40,
-html.light .app-shell .border-indigo-500\/30,
-html:not(.dark) .app-shell .border-indigo-400,
-html:not(.dark) .app-shell .border-indigo-500,
-html:not(.dark) .app-shell .border-indigo-400\/30,
-html:not(.dark) .app-shell .border-indigo-400\/40,
-html:not(.dark) .app-shell .border-indigo-500\/30,
-[data-theme="light"] .app-shell .border-indigo-400,
-[data-theme="light"] .app-shell .border-indigo-500,
-[data-theme="light"] .app-shell .border-indigo-400\/30,
-[data-theme="light"] .app-shell .border-indigo-400\/40,
-[data-theme="light"] .app-shell .border-indigo-500\/30 {
-  border-color: rgba(28, 77, 141, 0.25) !important;
-}
-
-html.light .app-shell .bg-indigo-500\/20,
-html.light .app-shell .bg-indigo-500\/15,
-html.light .app-shell .bg-indigo-500\/10,
-html.light .app-shell .bg-indigo-500\/30,
-html.light .app-shell .bg-indigo-600\/30,
-html:not(.dark) .app-shell .bg-indigo-500\/20,
-html:not(.dark) .app-shell .bg-indigo-500\/15,
-html:not(.dark) .app-shell .bg-indigo-500\/10,
-html:not(.dark) .app-shell .bg-indigo-500\/30,
-html:not(.dark) .app-shell .bg-indigo-600\/30,
-[data-theme="light"] .app-shell .bg-indigo-500\/20,
-[data-theme="light"] .app-shell .bg-indigo-500\/15,
-[data-theme="light"] .app-shell .bg-indigo-500\/10,
-[data-theme="light"] .app-shell .bg-indigo-500\/30,
-[data-theme="light"] .app-shell .bg-indigo-600\/30 {
-  background: rgba(73, 136, 196, 0.15) !important;
-}
-
-
-/* =========================================================================
-   3. BORDERS & DIVIDERS ACROSS APP-SHELL
-   ========================================================================= */
-html.dark .app-shell .border-slate-200,
-html.dark .app-shell .border-slate-100,
-html.dark .app-shell .border-slate-300,
-html.dark .app-shell .divide-slate-200,
-html.dark .app-shell .divide-slate-100,
-[data-theme="dark"] .app-shell .border-slate-200,
-[data-theme="dark"] .app-shell .border-slate-100,
-[data-theme="dark"] .app-shell .border-slate-300,
-[data-theme="dark"] .app-shell .divide-slate-200,
-[data-theme="dark"] .app-shell .divide-slate-100 {
-  border-color: rgba(73, 136, 196, 0.22) !important;
-}
-
-html.light .app-shell .border-slate-200,
-html.light .app-shell .border-slate-100,
-html.light .app-shell .border-slate-300,
-html.light .app-shell .divide-slate-200,
-html.light .app-shell .divide-slate-100,
-html:not(.dark) .app-shell .border-slate-200,
-html:not(.dark) .app-shell .border-slate-100,
-html:not(.dark) .app-shell .border-slate-300,
-html:not(.dark) .app-shell .divide-slate-200,
-html:not(.dark) .app-shell .divide-slate-100,
-[data-theme="light"] .app-shell .border-slate-200,
-[data-theme="light"] .app-shell .border-slate-100,
-[data-theme="light"] .app-shell .border-slate-300,
-[data-theme="light"] .app-shell .divide-slate-200,
-[data-theme="light"] .app-shell .divide-slate-100 {
-  border-color: rgba(28, 77, 141, 0.18) !important;
-}
-
-/* =========================================================================
-   4. LIGHT THEME BORDER & TRANSLUCENT BACKGROUND NORMALIZATION
-   ========================================================================= */
-html.light .app-shell .border-white\/5,
-html.light .app-shell .border-white\/10,
-html.light .app-shell .border-white\/15,
-html.light .app-shell .border-white\/20,
-html.light .app-shell .border-white\/30,
-html.light .app-shell .border-white\/40,
-html:not(.dark) .app-shell .border-white\/5,
-html:not(.dark) .app-shell .border-white\/10,
-html:not(.dark) .app-shell .border-white\/15,
-html:not(.dark) .app-shell .border-white\/20,
-html:not(.dark) .app-shell .border-white\/30,
-html:not(.dark) .app-shell .border-white\/40,
-[data-theme="light"] .app-shell .border-white\/5,
-[data-theme="light"] .app-shell .border-white\/10,
-[data-theme="light"] .app-shell .border-white\/15,
-[data-theme="light"] .app-shell .border-white\/20,
-[data-theme="light"] .app-shell .border-white\/30,
-[data-theme="light"] .app-shell .border-white\/40 {
-  border-color: rgba(28, 77, 141, 0.2) !important;
-}
-
-html.light .app-shell .bg-white\/5,
-html.light .app-shell .bg-white\/10,
-html.light .app-shell .bg-white\/15,
-html.light .app-shell .bg-white\/20,
-html.light .app-shell .bg-white\/\[0\.04\],
-html.light .app-shell .bg-white\/\[0\.08\],
-html.light .app-shell .bg-white\/\[0\.12\],
-html.light .app-shell .bg-white\/\[0\.15\],
-html.light .app-shell .bg-white\/\[0\.18\],
-html:not(.dark) .app-shell .bg-white\/5,
-html:not(.dark) .app-shell .bg-white\/10,
-html:not(.dark) .app-shell .bg-white\/15,
-html:not(.dark) .app-shell .bg-white\/20,
-html:not(.dark) .app-shell .bg-white\/\[0\.04\],
-html:not(.dark) .app-shell .bg-white\/\[0\.08\],
-html:not(.dark) .app-shell .bg-white\/\[0\.12\],
-html:not(.dark) .app-shell .bg-white\/\[0\.15\],
-html:not(.dark) .app-shell .bg-white\/\[0\.18\],
-[data-theme="light"] .app-shell .bg-white\/5,
-[data-theme="light"] .app-shell .bg-white\/10,
-[data-theme="light"] .app-shell .bg-white\/15,
-[data-theme="light"] .app-shell .bg-white\/20,
-[data-theme="light"] .app-shell .bg-white\/\[0\.04\],
-[data-theme="light"] .app-shell .bg-white\/\[0\.08\],
-[data-theme="light"] .app-shell .bg-white\/\[0\.12\],
-[data-theme="light"] .app-shell .bg-white\/\[0\.15\],
-[data-theme="light"] .app-shell .bg-white\/\[0\.18\] {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  color: #0F2854 !important;
-}
-
-html.light .app-shell .bg-black\/20,
-html.light .app-shell .bg-black\/30,
-html.light .app-shell .bg-black\/40,
-html.light .app-shell .bg-black\/50,
-html:not(.dark) .app-shell .bg-black\/20,
-html:not(.dark) .app-shell .bg-black\/30,
-html:not(.dark) .app-shell .bg-black\/40,
-html:not(.dark) .app-shell .bg-black\/50,
-[data-theme="light"] .app-shell .bg-black\/20,
-[data-theme="light"] .app-shell .bg-black\/30,
-[data-theme="light"] .app-shell .bg-black\/40,
-[data-theme="light"] .app-shell .bg-black\/50 {
-  background-color: rgba(189, 232, 245, 0.4) !important;
-  color: #0F2854 !important;
-}
-
-/* =========================================================================
-   5. NOTIFICATION DROPDOWN COMPONENT STYLES
-   ========================================================================= */
-/* Dark Theme Notification */
-html.dark .btn-notification-trigger,
-[data-theme="dark"] .btn-notification-trigger {
-  background: rgba(15, 40, 84, 0.5) !important;
-  border-color: rgba(73, 136, 196, 0.3) !important;
-  color: #ffffff !important;
-}
-html.dark .btn-notification-trigger:hover,
-[data-theme="dark"] .btn-notification-trigger:hover {
-  background: rgba(73, 136, 196, 0.25) !important;
-  border-color: rgba(73, 136, 196, 0.6) !important;
-}
-html.dark .notif-popover-header,
-[data-theme="dark"] .notif-popover-header {
-  border-bottom-color: rgba(73, 136, 196, 0.2) !important;
-}
-html.dark .notif-title,
-[data-theme="dark"] .notif-title {
-  color: #ffffff !important;
-}
-html.dark .notif-subtitle,
-[data-theme="dark"] .notif-subtitle {
-  color: rgba(189, 232, 245, 0.65) !important;
-}
-html.dark .notif-mark-read,
-[data-theme="dark"] .notif-mark-read {
-  color: #4988C4 !important;
-}
-html.dark .notif-mark-read:hover,
-[data-theme="dark"] .notif-mark-read:hover {
-  color: #BDE8F5 !important;
-}
-html.dark .notif-filter-track,
-[data-theme="dark"] .notif-filter-track {
-  background: rgba(7, 21, 45, 0.6) !important;
-  border-color: rgba(73, 136, 196, 0.2) !important;
-}
-html.dark .notif-filter-btn-active,
-[data-theme="dark"] .notif-filter-btn-active {
-  background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(189, 232, 245, 0.3) !important;
-}
-html.dark .notif-filter-btn-inactive,
-[data-theme="dark"] .notif-filter-btn-inactive {
-  color: rgba(189, 232, 245, 0.65) !important;
-}
-html.dark .notif-filter-btn-inactive:hover,
-[data-theme="dark"] .notif-filter-btn-inactive:hover {
-  color: #ffffff !important;
-}
-html.dark .notif-item-unread,
-[data-theme="dark"] .notif-item-unread {
-  background: rgba(28, 77, 141, 0.25) !important;
-  border-color: rgba(73, 136, 196, 0.35) !important;
-}
-html.dark .notif-item-unread:hover,
-[data-theme="dark"] .notif-item-unread:hover {
-  background: rgba(28, 77, 141, 0.4) !important;
-  border-color: rgba(73, 136, 196, 0.55) !important;
-}
-html.dark .notif-item-read,
-[data-theme="dark"] .notif-item-read {
-  background: rgba(15, 40, 84, 0.3) !important;
-  border-color: rgba(73, 136, 196, 0.15) !important;
-}
-html.dark .notif-item-read:hover,
-[data-theme="dark"] .notif-item-read:hover {
-  background: rgba(15, 40, 84, 0.5) !important;
-}
-html.dark .notif-icon-wrapper,
-[data-theme="dark"] .notif-icon-wrapper {
-  background: rgba(15, 40, 84, 0.6) !important;
-  border-color: rgba(73, 136, 196, 0.3) !important;
-}
-html.dark .notif-item-title,
-[data-theme="dark"] .notif-item-title {
-  color: #ffffff !important;
-}
-html.dark .notif-item-message,
-[data-theme="dark"] .notif-item-message {
-  color: #BDE8F5 !important;
-}
-html.dark .notif-item-time,
-[data-theme="dark"] .notif-item-time {
-  color: rgba(189, 232, 245, 0.6) !important;
-}
-html.dark .notif-empty-icon,
-[data-theme="dark"] .notif-empty-icon {
-  background: rgba(73, 136, 196, 0.2) !important;
-  color: #BDE8F5 !important;
-}
-
-/* Light Theme Notification */
-html.light .btn-notification-trigger,
-html:not(.dark) .btn-notification-trigger,
-[data-theme="light"] .btn-notification-trigger {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border-color: rgba(28, 77, 141, 0.25) !important;
-  color: #0F2854 !important;
-}
-html.light .btn-notification-trigger:hover,
-html:not(.dark) .btn-notification-trigger:hover,
-[data-theme="light"] .btn-notification-trigger:hover {
-  background: #ffffff !important;
-  border-color: rgba(73, 136, 196, 0.55) !important;
-  color: #1C4D8D !important;
-}
-html.light .notif-popover-header,
-html:not(.dark) .notif-popover-header,
-[data-theme="light"] .notif-popover-header {
-  border-bottom-color: rgba(28, 77, 141, 0.15) !important;
-}
-html.light .notif-title,
-html:not(.dark) .notif-title,
-[data-theme="light"] .notif-title {
-  color: #0F2854 !important;
-}
-html.light .notif-subtitle,
-html:not(.dark) .notif-subtitle,
-[data-theme="light"] .notif-subtitle {
-  color: #1C4D8D !important;
-}
-html.light .notif-mark-read,
-html:not(.dark) .notif-mark-read,
-[data-theme="light"] .notif-mark-read {
-  color: #1C4D8D !important;
-}
-html.light .notif-mark-read:hover,
-html:not(.dark) .notif-mark-read:hover,
-[data-theme="light"] .notif-mark-read:hover {
-  color: #0F2854 !important;
-}
-html.light .notif-filter-track,
-html:not(.dark) .notif-filter-track,
-[data-theme="light"] .notif-filter-track {
-  background: rgba(189, 232, 245, 0.4) !important;
-  border-color: rgba(28, 77, 141, 0.18) !important;
-}
-html.light .notif-filter-btn-active,
-html:not(.dark) .notif-filter-btn-active,
-[data-theme="light"] .notif-filter-btn-active {
-  background: #ffffff !important;
-  color: #0F2854 !important;
-  border: 1px solid rgba(28, 77, 141, 0.25) !important;
-  font-weight: 700 !important;
-}
-html.light .notif-filter-btn-inactive,
-html:not(.dark) .notif-filter-btn-inactive,
-[data-theme="light"] .notif-filter-btn-inactive {
-  color: #1C4D8D !important;
-}
-html.light .notif-filter-btn-inactive:hover,
-html:not(.dark) .notif-filter-btn-inactive:hover,
-[data-theme="light"] .notif-filter-btn-inactive:hover {
-  color: #0F2854 !important;
-}
-html.light .notif-item-unread,
-html:not(.dark) .notif-item-unread,
-[data-theme="light"] .notif-item-unread {
-  background: rgba(189, 232, 245, 0.35) !important;
-  border-color: rgba(28, 77, 141, 0.25) !important;
-}
-html.light .notif-item-unread:hover,
-html:not(.dark) .notif-item-unread:hover,
-[data-theme="light"] .notif-item-unread:hover {
-  background: rgba(189, 232, 245, 0.6) !important;
-  border-color: rgba(73, 136, 196, 0.45) !important;
-}
-html.light .notif-item-read,
-html:not(.dark) .notif-item-read,
-[data-theme="light"] .notif-item-read {
-  background: rgba(255, 255, 255, 0.8) !important;
-  border-color: rgba(28, 77, 141, 0.12) !important;
-}
-html.light .notif-item-read:hover,
-html:not(.dark) .notif-item-read:hover,
-[data-theme="light"] .notif-item-read:hover {
-  background: #ffffff !important;
-  border-color: rgba(28, 77, 141, 0.25) !important;
-}
-html.light .notif-icon-wrapper,
-html:not(.dark) .notif-icon-wrapper,
-[data-theme="light"] .notif-icon-wrapper {
-  background: #ffffff !important;
-  border-color: rgba(28, 77, 141, 0.2) !important;
-}
-html.light .notif-item-title,
-html:not(.dark) .notif-item-title,
-[data-theme="light"] .notif-item-title {
-  color: #0F2854 !important;
-}
-html.light .notif-item-message,
-html:not(.dark) .notif-item-message,
-[data-theme="light"] .notif-item-message {
-  color: #1C4D8D !important;
-}
-html.light .notif-item-time,
-html:not(.dark) .notif-item-time,
-[data-theme="light"] .notif-item-time {
-  color: #4988C4 !important;
-}
-html.light .notif-empty-icon,
-html:not(.dark) .notif-empty-icon,
-[data-theme="light"] .notif-empty-icon {
-  background: rgba(189, 232, 245, 0.5) !important;
-  color: #0F2854 !important;
-}
-
-/* =========================================================================
-   6. USER PROFILE & NAME TYPOGRAPHY STYLES
-   ========================================================================= */
-html.dark .user-name-text,
-[data-theme="dark"] .user-name-text {
-  color: #ffffff !important;
-  font-weight: 700 !important;
-}
-html.dark .user-subtitle-text,
-[data-theme="dark"] .user-subtitle-text {
-  color: rgba(189, 232, 245, 0.65) !important;
-}
-
-html.light .user-name-text,
-html:not(.dark) .user-name-text,
-[data-theme="light"] .user-name-text {
-  color: #0F2854 !important;
-  font-weight: 700 !important;
-}
-html.light .user-subtitle-text,
-html:not(.dark) .user-subtitle-text,
-[data-theme="light"] .user-subtitle-text {
-  color: #1C4D8D !important;
-}
-
-/* =========================================================================
-   7. DROPDOWN SELECT & OPTION STYLING
-   ========================================================================= */
-html.dark select option,
-[data-theme="dark"] select option {
-  background-color: #0F2854 !important;
-  color: #ffffff !important;
-}
-
-html.light select option,
-html:not(.dark) select option,
-[data-theme="light"] select option {
-  background-color: #ffffff !important;
-  color: #0F2854 !important;
-}
-
-/* Custom Scrollbars */
+/* Custom Oatmeal Scrollbars */
 ::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--oatmeal);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(73, 136, 196, 0.35);
-  border-radius: 999px;
+  background: var(--textured-gray);
+  border-radius: 9999px;
+  border: 2px solid var(--oatmeal);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(73, 136, 196, 0.65);
+  background: #C2BBB0;
+}
+
+/* =========================================================================
+   2. SIDEBAR: Deep Charcoal (#2B2B2B) Luxury Ink Anchor
+   ========================================================================= */
+.ats-sidebar,
+aside.ats-sidebar {
+  background: #242424 !important;
+  border-right: 1px solid #383838 !important;
+  color: var(--oatmeal) !important;
+}
+
+/* Workspace Brand Badge */
+.ats-sidebar .brand-badge {
+  background: var(--oatmeal) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--textured-gray) !important;
+  font-weight: 800 !important;
+}
+
+/* Sidebar Headings & Super-labels */
+.ats-sidebar .text-slate-400,
+.ats-sidebar .text-slate-300 {
+  color: var(--textured-gray) !important;
+}
+
+.ats-sidebar .text-white {
+  color: var(--oatmeal) !important;
+}
+
+/* Sidebar Navigation Items */
+.ats-sidebar button {
+  color: var(--textured-gray) !important;
+  transition: all 0.15s ease-in-out;
+}
+
+.ats-sidebar button svg {
+  color: var(--textured-gray) !important;
+  stroke: var(--textured-gray) !important;
+}
+
+.ats-sidebar button:hover {
+  background-color: #333333 !important;
+  color: #FFFFFF !important;
+}
+
+.ats-sidebar button:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* Active Nav Item */
+.ats-sidebar .nav-item-active,
+.ats-sidebar button.nav-item-active {
+  background-color: #3B3B3B !important;
+  color: #FFFFFF !important;
+  border: 1px solid #4F4F4F !important;
+  font-weight: 700 !important;
+}
+
+.ats-sidebar .nav-item-active svg,
+.ats-sidebar button.nav-item-active svg {
+  color: var(--oatmeal) !important;
+  stroke: var(--oatmeal) !important;
+}
+
+/* Sidebar Workspace Dropdown / Switcher Pill & Profile Card */
+.ats-sidebar .workspace-pill,
+.ats-sidebar .user-card,
+.ats-sidebar .glass-box {
+  background-color: #1E1E1E !important;
+  border: 1px solid #383838 !important;
+}
+
+.ats-sidebar .workspace-pill div:not(.brand-badge):not(.brand-badge *),
+.ats-sidebar .user-card div:not(.brand-badge):not(.brand-badge *),
+.ats-sidebar .glass-box div:not(.brand-badge):not(.brand-badge *) {
+  color: #FFFFFF !important;
+}
+
+.ats-sidebar .workspace-pill .text-white,
+.ats-sidebar .user-card .text-white,
+.ats-sidebar .user-name-text {
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+
+.ats-sidebar .workspace-pill .text-slate-300,
+.ats-sidebar .workspace-pill .text-slate-400,
+.ats-sidebar .workspace-pill span,
+.ats-sidebar .workspace-pill svg,
+.ats-sidebar .user-card .text-slate-300,
+.ats-sidebar .user-card .text-slate-400,
+.ats-sidebar .user-subtitle-text,
+.ats-sidebar .workspace-pill .text-\[11px\] {
+  color: #B5AEA4 !important;
+  font-size: 11px !important;
+}
+
+/* Force dark ink letter inside oatmeal brand badge */
+.ats-sidebar .brand-badge,
+.ats-sidebar .brand-badge *,
+.ats-sidebar .workspace-pill .brand-badge,
+.ats-sidebar .workspace-pill .brand-badge *,
+.ats-sidebar .user-card .brand-badge,
+.ats-sidebar .user-card .brand-badge * {
+  background-color: #F3EDE2 !important;
+  color: #242424 !important;
+  border: 1px solid #D8D1C7 !important;
+  font-weight: 800 !important;
+}
+
+/* Logout Button in Sidebar */
+.ats-sidebar button.text-rose-400,
+.ats-sidebar button:has(.lucide-log-out) {
+  color: #F87171 !important;
+}
+
+.ats-sidebar button.text-rose-400 svg,
+.ats-sidebar button:has(.lucide-log-out) svg {
+  color: #F87171 !important;
+  stroke: #F87171 !important;
+}
+
+.ats-sidebar button.text-rose-400:hover,
+.ats-sidebar button:has(.lucide-log-out):hover {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: #FCA5A5 !important;
+}
+
+/* =========================================================================
+   3. TOP HEADER: Warm Oatmeal (#F3EDE2) with Charcoal Accents
+   ========================================================================= */
+.ats-header,
+header.ats-header {
+  background-color: var(--oatmeal) !important;
+  border-bottom: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+}
+
+/* Breadcrumbs & Header Titles (Exclude buttons & button children) */
+.ats-header h1,
+.ats-header h2,
+.ats-header span.text-white:not(button *),
+.ats-header div.text-white:not(button *),
+.ats-header p.text-white:not(button *),
+.ats-header a.text-white:not(button *),
+.ats-header .text-slate-200:not(button):not(button *) {
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+}
+
+.ats-header .text-slate-400,
+.ats-header .text-slate-300 {
+  color: var(--charcoal-muted) !important;
+}
+
+/* Search Bar in Header */
+.ats-header input.glass-input,
+.ats-header input {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+}
+
+.ats-header input::placeholder {
+  color: var(--charcoal-muted) !important;
+}
+
+.ats-header svg.lucide-search {
+  color: var(--ink) !important;
+  stroke: var(--ink) !important;
+}
+
+.ats-header .glass-box {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+}
+
+/* Header Action Buttons (e.g. Create Job) */
+.btn-header-primary,
+button.btn-header-primary,
+.ats-header button.bg-indigo-600 {
+  background-color: #242424 !important;
+  color: #F3EDE2 !important;
+  border: 1px solid #1A1A1A !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(43, 43, 43, 0.2) !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-header-primary *,
+button.btn-header-primary *,
+.ats-header button.bg-indigo-600 * {
+  color: #F3EDE2 !important;
+}
+
+.btn-header-primary svg,
+button.btn-header-primary svg,
+.ats-header button.bg-indigo-600 svg {
+  color: #F3EDE2 !important;
+  stroke: #F3EDE2 !important;
+}
+
+.btn-header-primary:hover,
+button.btn-header-primary:hover,
+.ats-header button.bg-indigo-600:hover {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  border-color: #000000 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
+
+.btn-header-primary:hover *,
+button.btn-header-primary:hover *,
+.ats-header button.bg-indigo-600:hover * {
+  color: #FFFFFF !important;
+}
+
+.btn-header-primary:hover svg,
+button.btn-header-primary:hover svg,
+.ats-header button.bg-indigo-600:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* Notification Bell Trigger */
+.btn-notification-trigger {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+  box-shadow: 0 1px 4px rgba(43, 43, 43, 0.06) !important;
+}
+
+.btn-notification-trigger:hover {
+  background-color: var(--oatmeal-hover) !important;
+  border-color: #BDB5A9 !important;
+}
+
+.btn-notification-trigger svg {
+  color: var(--ink) !important;
+  stroke: var(--ink) !important;
+}
+
+/* =========================================================================
+   4. MAIN DASHBOARD CONTAINERS: Unified Pure White (#FFFFFF) & Drop Shadow
+   ========================================================================= */
+.page-header-card,
+.glass-container,
+.ats-card,
+.surface,
+main .bg-white,
+main .bg-slate-50,
+main .bg-slate-50\/60,
+main .bg-slate-50\/70,
+main .bg-slate-50\/50,
+main .bg-slate-50\/40,
+main .bg-slate-100 {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--textured-gray) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 4px 20px -2px rgba(43, 43, 43, 0.08), 0 2px 6px -1px rgba(43, 43, 43, 0.04) !important;
+  color: var(--ink) !important;
+}
+
+.page-header-card {
+  padding: 1.5rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* Maintain crisp drop shadow on hover without jarring resize */
+.glass-container:hover,
+.ats-card:hover,
+.page-header-card:hover {
+  transform: none !important;
+  box-shadow: 0 4px 20px -2px rgba(43, 43, 43, 0.08), 0 2px 6px -1px rgba(43, 43, 43, 0.04) !important;
+}
+
+/* Section Headings inside Main Containers (DO NOT override buttons) */
+.app-shell main h1,
+.app-shell main h2,
+.app-shell main h3,
+.app-shell main h4,
+.app-shell main .heading-title,
+.app-shell main .text-slate-900,
+.app-shell main .text-slate-800,
+.app-shell main div.text-white:not(button):not(button *),
+.app-shell main span.text-white:not(button):not(button *):not([class*="bg-indigo"]):not([class*="bg-indigo"] *) {
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+}
+
+/* High-contrast readable Subtext, Descriptions, and Content */
+.app-shell main p,
+.app-shell main .text-slate-100,
+.app-shell main .text-slate-200,
+.app-shell main .text-slate-300,
+.app-shell main .text-slate-400,
+.app-shell main .text-slate-500,
+.app-shell main .text-slate-600,
+.glass-box p,
+.glass-container p,
+.page-header-card p {
+  color: #383838 !important;
+}
+
+/* Uppercase Section Labels & Eyebrows */
+.app-shell main .uppercase,
+.app-shell main .tracking-\[0\.18em\],
+.app-shell main .tracking-\[0\.2em\] {
+  color: var(--charcoal-muted) !important;
+  font-weight: 700 !important;
+}
+
+/* =========================================================================
+   5. INNER CARDS & ROW ITEMS: Unified White & Clean Border Contrast
+   ========================================================================= */
+.glass-box,
+.glass-component {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--textured-gray) !important;
+  border-radius: 16px !important;
+  color: var(--ink) !important;
+  box-shadow: 0 1px 3px rgba(43, 43, 43, 0.04) !important;
+}
+
+/* Hover on interactive inner cards */
+.glass-container .glass-box:not(.glass-container):hover,
+.glass-container .glass-component:hover,
+.glass-box:hover {
+  background-color: #FAF7F2 !important;
+  border-color: #BDB5A9 !important;
+  box-shadow: 0 3px 12px rgba(43, 43, 43, 0.07) !important;
+}
+
+/* Text inside inner cards in main content */
+main .glass-box .text-white:not(button *),
+main .glass-component .text-white:not(button *),
+.app-shell main .glass-box .text-white,
+.glass-box .text-slate-800,
+.glass-component .text-slate-800 {
+  color: var(--ink) !important;
+  font-weight: 600 !important;
+}
+
+.glass-box .text-slate-400,
+.glass-box .text-slate-300,
+.glass-component .text-slate-400,
+.glass-component .text-slate-300 {
+  color: #4A4A4A !important;
+}
+
+/* =========================================================================
+   6. ICON VISIBILITY IN MAIN DASHBOARD: 100% Crisp & High Contrast
+   ========================================================================= */
+.app-shell main svg:not(button.btn-primary svg):not(button.btn-header-primary svg):not(button[class*="bg-[#242424]"] svg):not(button[class*="bg-[#2B2B2B]"] svg):not(button[class*="bg-black"] svg):not(button.bg-indigo-600 svg):not(button.bg-rose-600 svg):not(a[class*="bg-[#242424]"] svg):not(a[class*="bg-[#2B2B2B]"] svg):not(a[class*="bg-black"] svg):not(a[class*="bg-[#137333]"] svg):not(.btn-maps-action svg):not(.status-badge svg):not(.badge-icon svg) {
+  color: var(--ink) !important;
+  stroke: var(--ink) !important;
+}
+
+/* Specific status icons retain their clear semantic color */
+svg.lucide-check-circle-2,
+svg.lucide-check {
+  color: #166534 !important;
+  stroke: #166534 !important;
+}
+
+svg.lucide-clock,
+svg.lucide-alert-circle {
+  color: #B45309 !important;
+  stroke: #B45309 !important;
+}
+
+svg.lucide-trash-2,
+svg.lucide-x-circle {
+  color: #DC2626 !important;
+  stroke: #DC2626 !important;
+}
+
+/* Icons inside dark buttons/chips and dark action links */
+button.btn-primary svg,
+button.btn-header-primary svg,
+button[class*="bg-[#242424]"] svg,
+button[class*="bg-[#2B2B2B]"] svg,
+button[class*="bg-black"] svg,
+button.bg-indigo-600 svg,
+button.bg-rose-600 svg,
+a.btn-maps-action svg,
+.btn-maps-action svg,
+a[class*="bg-[#242424]"] svg,
+a[class*="bg-[#2B2B2B]"] svg,
+a[class*="bg-black"] svg,
+.app-shell main button.btn-primary svg,
+.app-shell main button.btn-header-primary svg,
+.app-shell main button[class*="bg-[#242424]"] svg,
+.app-shell main button[class*="bg-[#2B2B2B]"] svg,
+.app-shell main a[class*="bg-[#242424]"] svg,
+.app-shell main a[class*="bg-[#2B2B2B]"] svg,
+.app-shell main a.btn-maps-action svg {
+  color: #F3EDE2 !important;
+  stroke: #F3EDE2 !important;
+}
+
+/* =========================================================================
+   7. FORM CONTROLS & INPUTS: Crisp White Surface with Charcoal Text
+   ========================================================================= */
+.glass-input,
+input.glass-input,
+select.glass-input,
+textarea.glass-input,
+main input:not([type="checkbox"]):not([type="radio"]),
+main select,
+main textarea {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+  border-radius: 12px;
+}
+
+.glass-input::placeholder,
+main input::placeholder,
+main textarea::placeholder {
+  color: #8C867E !important;
+}
+
+.glass-input:focus,
+main input:focus,
+main select:focus,
+main textarea:focus {
+  border-color: var(--ink) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(43, 43, 43, 0.14) !important;
+}
+
+/* Dropdown select options */
+select.glass-input option,
+main select option {
+  background-color: var(--card-white) !important;
+  color: var(--ink) !important;
+}
+
+/* =========================================================================
+   8. PILLS & STATUS BADGES: Clean, High Contrast Chips
+   ========================================================================= */
+.glass-pill {
+  background-color: var(--oatmeal) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+  font-weight: 600 !important;
+}
+
+.glass-pill:hover {
+  background-color: var(--oatmeal-hover) !important;
+}
+
+/* Active Status Pill */
+.status-active,
+span:has(> span.bg-emerald-400),
+.bg-emerald-500\/20 {
+  background-color: #E6F4EA !important;
+  border: 1px solid #CEEAD6 !important;
+  color: #137333 !important;
+  font-weight: 700 !important;
+}
+
+/* Pending Status Pill */
+.status-pending,
+.bg-amber-500\/20,
+.bg-amber-500\/10 {
+  background-color: #FEF7E0 !important;
+  border: 1px solid #FEEFC3 !important;
+  color: #B06000 !important;
+  font-weight: 700 !important;
+}
+
+/* Rejected / Danger Pill */
+.status-rejected,
+.bg-rose-500\/20,
+.bg-rose-500\/10 {
+  background-color: #FCE8E6 !important;
+  border: 1px solid #FAD2CF !important;
+  color: #C5221F !important;
+  font-weight: 700 !important;
+}
+
+/* Neutral Tags & Counter Badges */
+.badge-neutral,
+span.bg-white\/10,
+span.bg-white\/20 {
+  background-color: #EAE3D5 !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+  font-weight: 600 !important;
+}
+
+/* Eradicate old theme indigo/purple/violet remnants */
+.bg-indigo-500\/30,
+.bg-indigo-500\/20,
+.bg-indigo-500\/15,
+.bg-indigo-500\/10,
+.bg-indigo-50,
+.bg-indigo-100,
+.bg-purple-500\/20,
+.bg-purple-500\/10,
+.bg-purple-50,
+.bg-violet-500\/20,
+.bg-violet-500\/10,
+.bg-violet-50,
+.bg-blue-500\/10,
+.bg-blue-500\/20 {
+  background-color: #EAE3D5 !important;
+  border-color: #D8D1C7 !important;
+  color: #2B2B2B !important;
+}
+
+.text-indigo-200,
+.text-indigo-300,
+.text-indigo-400,
+.text-indigo-600,
+.text-indigo-700,
+.text-purple-200,
+.text-purple-300,
+.text-purple-400,
+.text-violet-200,
+.text-violet-300,
+.text-violet-400 {
+  color: #2B2B2B !important;
+}
+
+.border-indigo-400\/30,
+.border-indigo-400\/40,
+.border-indigo-200,
+.border-purple-400\/30,
+.border-purple-400\/40,
+.border-violet-400\/30,
+.border-violet-400\/40,
+.border-blue-400\/30 {
+  border-color: #D8D1C7 !important;
+}
+
+/* =========================================================================
+   9. BUTTONS: Deep Charcoal (#242424) Primary CTA & Oatmeal Hover
+   ========================================================================= */
+button.bg-indigo-600,
+button.btn-primary,
+button.btn-header-primary,
+.btn-primary,
+button[class*="bg-[#242424]"],
+button[class*="bg-[#2B2B2B]"],
+button[class*="bg-black"],
+button[type="submit"]:not(.btn-secondary):not(.btn-ghost):not(.glass-pill),
+.app-shell main button.bg-indigo-600,
+.app-shell main button.btn-primary,
+.app-shell main button.btn-header-primary,
+.app-shell main button[class*="bg-[#242424]"],
+.app-shell main button[class*="bg-[#2B2B2B]"],
+button.rounded-xl.bg-indigo-600,
+button.rounded-2xl.bg-indigo-600 {
+  background-color: #242424 !important;
+  color: #F3EDE2 !important;
+  border: 1px solid #1A1A1A !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(43, 43, 43, 0.18) !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+button.bg-indigo-600 *,
+button.btn-primary *,
+button.btn-header-primary *,
+.btn-primary *,
+button[class*="bg-[#242424]"] *,
+button[class*="bg-[#2B2B2B]"] *,
+button[class*="bg-black"] *,
+button[type="submit"]:not(.btn-secondary):not(.btn-ghost):not(.glass-pill) *,
+.app-shell main button.bg-indigo-600 *,
+.app-shell main button.btn-primary *,
+.app-shell main button.btn-header-primary *,
+.app-shell main button[class*="bg-[#242424]"] *,
+.app-shell main button[class*="bg-[#2B2B2B]"] * {
+  color: #F3EDE2 !important;
+}
+
+button.bg-indigo-600 svg,
+button.btn-primary svg,
+button.btn-header-primary svg,
+.btn-primary svg,
+button[class*="bg-[#242424]"] svg,
+button[class*="bg-[#2B2B2B]"] svg,
+button[class*="bg-black"] svg,
+a.btn-maps-action svg,
+.btn-maps-action svg,
+a[class*="bg-[#242424]"] svg,
+a[class*="bg-[#2B2B2B]"] svg,
+a[class*="bg-black"] svg,
+.app-shell main button.bg-indigo-600 svg,
+.app-shell main button.btn-primary svg,
+.app-shell main button.btn-header-primary svg,
+.app-shell main button[class*="bg-[#242424]"] svg,
+.app-shell main button[class*="bg-[#2B2B2B]"] svg,
+.app-shell main a.btn-maps-action svg,
+.app-shell main a[class*="bg-[#242424]"] svg,
+.app-shell main a[class*="bg-[#2B2B2B]"] svg {
+  color: #F3EDE2 !important;
+  stroke: #F3EDE2 !important;
+  fill: none !important;
+}
+
+button.bg-indigo-600:hover,
+button.btn-primary:hover,
+button.btn-header-primary:hover,
+.btn-primary:hover,
+button[class*="bg-[#242424]"]:hover,
+button[class*="bg-[#2B2B2B]"]:hover,
+button[class*="bg-black"]:hover,
+button[type="submit"]:not(.btn-secondary):not(.btn-ghost):not(.glass-pill):hover,
+.app-shell main button.bg-indigo-600:hover,
+.app-shell main button.btn-primary:hover,
+.app-shell main button.btn-header-primary:hover,
+.app-shell main button[class*="bg-[#242424]"]:hover,
+.app-shell main button[class*="bg-[#2B2B2B]"]:hover {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  border-color: #000000 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
+
+button.bg-indigo-600:hover *,
+button.btn-primary:hover *,
+button.btn-header-primary:hover *,
+.btn-primary:hover *,
+button[class*="bg-[#242424]"]:hover *,
+button[class*="bg-[#2B2B2B]"]:hover *,
+button[class*="bg-black"]:hover *,
+button[type="submit"]:not(.btn-secondary):not(.btn-ghost):not(.glass-pill):hover *,
+.app-shell main button.bg-indigo-600:hover *,
+.app-shell main button.btn-primary:hover *,
+.app-shell main button.btn-header-primary:hover *,
+.app-shell main button[class*="bg-[#242424]"]:hover *,
+.app-shell main button[class*="bg-[#2B2B2B]"]:hover * {
+  color: #FFFFFF !important;
+}
+
+button.bg-indigo-600:hover svg,
+button.btn-primary:hover svg,
+button.btn-header-primary:hover svg,
+.btn-primary:hover svg,
+button[class*="bg-[#242424]"]:hover svg,
+button[class*="bg-[#2B2B2B]"]:hover svg,
+button[class*="bg-black"]:hover svg,
+.app-shell main button.bg-indigo-600:hover svg,
+.app-shell main button.btn-primary:hover svg,
+.app-shell main button.btn-header-primary:hover svg,
+.app-shell main button[class*="bg-[#242424]"]:hover svg,
+.app-shell main button[class*="bg-[#2B2B2B]"]:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  fill: none !important;
+}
+
+/* Secondary Button */
+button.glass-pill,
+button.btn-secondary {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+}
+
+button.glass-pill:hover,
+button.btn-secondary:hover {
+  background-color: var(--oatmeal) !important;
+  border-color: #BDB5A9 !important;
+}
+
+/* Disabled Button States */
+button:disabled,
+button[disabled] {
+  background-color: #E2DBD0 !important;
+  border-color: #D8D1C7 !important;
+  color: #7A746D !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 0.9 !important;
+}
+
+button:disabled *,
+button[disabled] * {
+  color: #7A746D !important;
+}
+
+/* =========================================================================
+   10. MODALS & OVERLAYS: Oatmeal & Ink Frosted Overlay
+   ========================================================================= */
+/* Modal Backdrop (Strictly scoped to modals, NO page wrapper leakage) */
+.fixed.inset-0.z-50.bg-slate-950\/70,
+.fixed.inset-0.z-50.bg-slate-950\/60,
+.fixed.inset-0.z-50[class*="bg-slate-"],
+.fixed.inset-0.z-50[class*="bg-black"] {
+  background-color: rgba(43, 43, 43, 0.65) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Modal Card Surface */
+.fixed.inset-0.z-50 .glass-container,
+.fixed.inset-0.z-50 [class*="glass-container"] {
+  background-color: var(--panel-ivory) !important;
+  border: 1px solid var(--textured-gray) !important;
+  box-shadow: 0 25px 50px -12px rgba(43, 43, 43, 0.25) !important;
+  color: var(--ink) !important;
+}
+
+.fixed.inset-0.z-50 h1,
+.fixed.inset-0.z-50 h2,
+.fixed.inset-0.z-50 h3,
+.fixed.inset-0.z-50 h4,
+.fixed.inset-0.z-50 .text-white {
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+}
+
+.fixed.inset-0.z-50 label {
+  color: var(--ink) !important;
+  font-weight: 600 !important;
+}
+
+.fixed.inset-0.z-50 .text-slate-200,
+.fixed.inset-0.z-50 .text-slate-300,
+.fixed.inset-0.z-50 .text-slate-400 {
+  color: var(--charcoal-sub) !important;
+}
+
+/* Form Controls Inside Modals */
+.fixed.inset-0.z-50 input:not([type="checkbox"]):not([type="radio"]),
+.fixed.inset-0.z-50 select,
+.fixed.inset-0.z-50 textarea {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+}
+
+.fixed.inset-0.z-50 option {
+  background-color: var(--card-white) !important;
+  color: var(--ink) !important;
+}
+
+.fixed.inset-0.z-50 input::placeholder,
+.fixed.inset-0.z-50 textarea::placeholder {
+  color: #8C867E !important;
+}
+
+/* Inner Cards & Boxes in Modals */
+.fixed.inset-0.z-50 .glass-box,
+.fixed.inset-0.z-50 .glass-component,
+.fixed.inset-0.z-50 [class*="border-white"] {
+  background-color: var(--card-white) !important;
+  border-color: var(--textured-gray) !important;
+  color: var(--ink) !important;
+}
+
+/* Modal Buttons */
+.fixed.inset-0.z-50 button.glass-pill,
+.fixed.inset-0.z-50 button:not(.bg-indigo-600):not([type="submit"]):not(.bg-rose-600):not(.bg-emerald-600):not(.btn-primary):not(.btn-modal-primary):not([class*="bg-[#242424]"]):not([class*="bg-[#2B2B2B]"]):not([class*="bg-black"]):not([class*="bg-[#1A1A1A]"]) {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+}
+
+.fixed.inset-0.z-50 button.glass-pill:hover,
+.fixed.inset-0.z-50 button:not(.bg-indigo-600):not([type="submit"]):not(.bg-rose-600):not(.bg-emerald-600):not(.btn-primary):not(.btn-modal-primary):not([class*="bg-[#242424]"]):not([class*="bg-[#2B2B2B]"]):not([class*="bg-black"]):not([class*="bg-[#1A1A1A]"]):hover {
+  background-color: var(--oatmeal) !important;
+}
+
+.fixed.inset-0.z-50 button.bg-indigo-600,
+.fixed.inset-0.z-50 button[type="submit"],
+.fixed.inset-0.z-50 button.btn-primary,
+.fixed.inset-0.z-50 button.btn-modal-primary,
+.fixed.inset-0.z-50 button[class*="bg-[#242424]"],
+.fixed.inset-0.z-50 button[class*="bg-[#2B2B2B]"],
+.fixed.inset-0.z-50 button[class*="bg-[#1A1A1A]"],
+.fixed.inset-0.z-50 button[class*="bg-black"] {
+  background-color: #242424 !important;
+  color: #F3EDE2 !important;
+  border: 1px solid #1A1A1A !important;
+}
+
+.fixed.inset-0.z-50 button.bg-indigo-600 *,
+.fixed.inset-0.z-50 button[type="submit"] *,
+.fixed.inset-0.z-50 button.btn-primary *,
+.fixed.inset-0.z-50 button.btn-modal-primary *,
+.fixed.inset-0.z-50 button[class*="bg-[#242424]"] *,
+.fixed.inset-0.z-50 button[class*="bg-[#2B2B2B]"] *,
+.fixed.inset-0.z-50 button[class*="bg-[#1A1A1A]"] *,
+.fixed.inset-0.z-50 button[class*="bg-black"] * {
+  color: #F3EDE2 !important;
+}
+
+.fixed.inset-0.z-50 button.bg-indigo-600 svg,
+.fixed.inset-0.z-50 button[type="submit"] svg,
+.fixed.inset-0.z-50 button.btn-primary svg,
+.fixed.inset-0.z-50 button.btn-modal-primary svg,
+.fixed.inset-0.z-50 button[class*="bg-[#242424]"] svg,
+.fixed.inset-0.z-50 button[class*="bg-[#2B2B2B]"] svg,
+.fixed.inset-0.z-50 button[class*="bg-[#1A1A1A]"] svg,
+.fixed.inset-0.z-50 button[class*="bg-black"] svg {
+  color: #F3EDE2 !important;
+  stroke: #F3EDE2 !important;
+}
+
+.fixed.inset-0.z-50 button.bg-indigo-600:hover,
+.fixed.inset-0.z-50 button[type="submit"]:hover,
+.fixed.inset-0.z-50 button.btn-primary:hover,
+.fixed.inset-0.z-50 button.btn-modal-primary:hover,
+.fixed.inset-0.z-50 button[class*="bg-[#242424]"]:hover,
+.fixed.inset-0.z-50 button[class*="bg-[#2B2B2B]"]:hover,
+.fixed.inset-0.z-50 button[class*="bg-[#1A1A1A]"]:hover,
+.fixed.inset-0.z-50 button[class*="bg-black"]:hover {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+/* Modal Buttons Disabled State */
+.fixed.inset-0.z-50 button:disabled,
+.fixed.inset-0.z-50 button[disabled] {
+  background-color: #E2DBD0 !important;
+  border-color: #D8D1C7 !important;
+  color: #7A746D !important;
+  cursor: not-allowed !important;
+  opacity: 0.8 !important;
+}
+
+.fixed.inset-0.z-50 button:disabled *,
+.fixed.inset-0.z-50 button[disabled] * {
+  color: #7A746D !important;
+}
+
+.fixed.inset-0.z-50 button:disabled svg,
+.fixed.inset-0.z-50 button[disabled] svg {
+  color: #7A746D !important;
+  stroke: #7A746D !important;
+}
+
+/* Modal Icons Visibility */
+.fixed.inset-0.z-50 svg:not(button.bg-indigo-600 svg):not(button[type="submit"] svg):not(button.btn-primary svg):not(button.btn-modal-primary svg):not(button[class*="bg-[#242424]"] svg):not(button[class*="bg-[#2B2B2B]"] svg):not(button[class*="bg-black"] svg):not(.text-emerald-400):not(.text-rose-400):not(.text-amber-600):not(.text-emerald-600):not(.text-emerald-700):not(.text-rose-600) {
+  color: var(--ink) !important;
+  stroke: var(--ink) !important;
+}
+
+/* =========================================================================
+   11. NOTIFICATION POPOVER: Oatmeal Card Surface
+   ========================================================================= */
+.notif-popover {
+  background-color: var(--panel-ivory) !important;
+  border: 1px solid var(--textured-gray) !important;
+  box-shadow: 0 16px 36px rgba(43, 43, 43, 0.15) !important;
+  color: var(--ink) !important;
+}
+
+.notif-popover h3,
+.notif-popover .text-white {
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+}
+
+.notif-popover button:has(> div) {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+}
+
+.notif-popover button:has(> div):hover {
+  background-color: var(--oatmeal) !important;
+}
+
+/* =========================================================================
+   12. CANDIDATE PORTAL & SECURITY SECTION
+   ========================================================================= */
+.card-security-signout,
+.app-shell .border-red-500\/30,
+.app-shell .bg-red-500\/10 {
+  background-color: var(--card-white) !important;
+  border: 1px solid var(--textured-gray) !important;
+}
+
+.card-security-signout h3 {
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+}
+
+.card-security-signout p {
+  color: var(--charcoal-sub) !important;
+}
+
+/* Mobile Bottom Navigation */
+.fixed.bottom-0.ats-header {
+  background-color: var(--oatmeal) !important;
+  border-top: 1px solid var(--textured-gray) !important;
+}
+
+.fixed.bottom-0.ats-header button {
+  color: var(--charcoal-sub) !important;
+}
+
+.fixed.bottom-0.ats-header button.border-indigo-400\/40 {
+  background-color: #EAE3D5 !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--textured-gray) !important;
+}
+
+/* =========================================================================
+   13. PIPELINE KANBAN & CANDIDATE PROFILE CARDS
+   ========================================================================= */
+/* Pipeline Stage Column Containers */
+.app-shell main .grid-cols-6>.glass-container {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--textured-gray) !important;
+  box-shadow: 0 4px 20px -2px rgba(43, 43, 43, 0.08), 0 2px 6px -1px rgba(43, 43, 43, 0.04) !important;
+}
+
+/* Kanban Cards */
+.app-shell main .grid-cols-6 .glass-box {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--textured-gray) !important;
+  box-shadow: 0 1px 4px rgba(43, 43, 43, 0.05) !important;
+}
+
+.app-shell main .grid-cols-6 .glass-box:hover {
+  background-color: #FAF7F2 !important;
+  border-color: #BDB5A9 !important;
+  box-shadow: 0 4px 14px rgba(43, 43, 43, 0.09) !important;
+}
+
+/* Pipeline Stage Item Count Badges */
+.app-shell main .grid-cols-6 .rounded-full.bg-white\/15,
+.app-shell main .grid-cols-6 .rounded-full.bg-white\/10 {
+  background-color: #EAE3D5 !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+}
+
+/* Candidate Initials Avatar Pill */
+.app-shell main .rounded-full.bg-indigo-600,
+.app-shell main .rounded-2xl.bg-indigo-600 {
+  background-color: var(--ink) !important;
+  color: var(--oatmeal) !important;
+}
+
+/* Stated Skill Pills */
+.app-shell main .glass-pill {
+  background-color: var(--oatmeal) !important;
+  border: 1px solid var(--textured-gray) !important;
+  color: var(--ink) !important;
+}
+
+/* =========================================================================
+   14. TABLES & DATA LISTS: Crisp Contrast & Clean Grid Lines
+   ========================================================================= */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+th {
+  color: var(--charcoal-muted) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid var(--textured-gray) !important;
+}
+
+td {
+  color: var(--ink) !important;
+  border-bottom: 1px solid var(--textured-gray) !important;
+}
+
+tr:hover td {
+  background-color: rgba(243, 237, 226, 0.5) !important;
+}
+
+/* Select Dropdowns Options */
+select option {
+  background-color: var(--card-white) !important;
+  color: var(--ink) !important;
 }

@@ -1,64 +1,38 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 
 const ThemeContext = createContext({
-  theme: 'dark',
-  toggleTheme: () => {},
-  isDark: true,
+  theme: 'oatmeal',
+  toggleTheme: () => { },
+  isDark: false,
 });
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ats_theme') || localStorage.getItem('theme');
-      if (saved === 'dark' || saved === 'light') return saved;
-      return 'dark';
-    } catch (e) {
-      return 'dark';
-    }
-  });
-
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      root.classList.remove('light');
-      root.setAttribute('data-theme', 'dark');
-      body.setAttribute('data-theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      root.classList.add('light');
-      root.setAttribute('data-theme', 'light');
-      body.setAttribute('data-theme', 'light');
-    }
+    root.classList.remove('dark', 'light');
+    body.classList.remove('dark', 'light');
+    root.setAttribute('data-theme', 'oatmeal');
+    body.setAttribute('data-theme', 'oatmeal');
     try {
-      localStorage.setItem('ats_theme', theme);
-      localStorage.setItem('theme', theme);
-    } catch (e) {}
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
+      localStorage.removeItem('ats_theme');
+      localStorage.removeItem('theme');
+    } catch (e) { }
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === 'dark' }}>
+    <ThemeContext.Provider value={{ theme: 'oatmeal', toggleTheme: () => { }, isDark: false }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
-    return {
-      theme: isDark ? 'dark' : 'light',
-      toggleTheme: () => {},
-      isDark,
-    };
-  }
-  return context;
+  return {
+    theme: 'oatmeal',
+    toggleTheme: () => { },
+    isDark: false,
+  };
 }
 
 export default useTheme;
