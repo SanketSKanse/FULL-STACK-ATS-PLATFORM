@@ -29,6 +29,12 @@ import {
     Video,
     FileText,
     Calendar,
+    ListTodo,
+    Check,
+    Circle,
+    AlertCircle,
+    Tag,
+    Filter,
 } from 'lucide-react';
 import CandidateMatchCard from './CandidateMatchCard';
 import ApplicationTimeline from './ApplicationTimeline';
@@ -83,6 +89,38 @@ function isMapLocationUrl(url) {
            lower.includes('map');
 }
 
+const TASK_CATEGORY_MAP = {
+    CANDIDATE_REVIEW: { label: 'Candidate Review', icon: UserRound, badgeClass: 'bg-[#EAE3D5] text-[#2B2B2B] border-[#D8D1C7]' },
+    INTERVIEW_PREP: { label: 'Interview Prep', icon: CalendarClock, badgeClass: 'bg-[#EDE7F6] text-[#5E35B1] border-[#D1C4E9]' },
+    OFFER_MANAGEMENT: { label: 'Offer & Closing', icon: FileText, badgeClass: 'bg-[#E0F2F1] text-[#00695C] border-[#B2DFDB]' },
+    SOURCING: { label: 'Sourcing & Outreach', icon: Search, badgeClass: 'bg-[#E8F0FE] text-[#1A73E8] border-[#D2E3FC]' },
+    TEAM_SYNC: { label: 'Hiring Team Sync', icon: Users, badgeClass: 'bg-[#FCE8E6] text-[#C5221F] border-[#FAD2CF]' },
+    GENERAL: { label: 'General', icon: Tag, badgeClass: 'bg-[#FAF7F2] text-[#5E5953] border-[#D8D1C7]' },
+};
+
+const TASK_PRIORITY_MAP = {
+    URGENT: { label: 'Urgent', badgeClass: 'bg-[#FCE8E6] text-[#C5221F] border-[#FAD2CF]' },
+    HIGH: { label: 'High', badgeClass: 'bg-[#FEF7E0] text-[#B06000] border-[#FEEFC3]' },
+    MEDIUM: { label: 'Medium', badgeClass: 'bg-[#E8F0FE] text-[#1A73E8] border-[#D2E3FC]' },
+    LOW: { label: 'Low', badgeClass: 'bg-[#F1F3F4] text-[#5F6368] border-[#DADCE0]' },
+};
+
+function formatTaskDueDate(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(d);
+    target.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { label: `Overdue (${Math.abs(diffDays)}d ago)`, isOverdue: true };
+    if (diffDays === 0) return { label: 'Due today', isToday: true };
+    if (diffDays === 1) return { label: 'Due tomorrow', isUpcoming: true };
+    return { label: `Due ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`, isNormal: true };
+}
+
 export default function RecruiterDashboard() {
     const [jobs, setJobs] = useState([]);
     const [applications, setApplications] = useState([]);
@@ -123,6 +161,26 @@ export default function RecruiterDashboard() {
     const [inviteError, setInviteError] = useState('');
     const [actionLoadingId, setActionLoadingId] = useState(null);
 
+    // Tasks Management State
+    const [tasks, setTasks] = useState([]);
+    const [taskSuggestions, setTaskSuggestions] = useState([]);
+    const [loadingTasks, setLoadingTasks] = useState(false);
+    const [taskFilter, setTaskFilter] = useState('ALL');
+    const [taskCategoryFilter, setTaskCategoryFilter] = useState('ALL');
+    const [taskJobFilter, setTaskJobFilter] = useState('');
+    const [taskModalOpen, setTaskModalOpen] = useState(false);
+    const emptyTaskForm = {
+        title: '',
+        description: '',
+        priority: 'MEDIUM',
+        category: 'GENERAL',
+        dueDate: '',
+        relatedJob: '',
+        relatedCandidate: '',
+    };
+    const [taskForm, setTaskForm] = useState(emptyTaskForm);
+    const [taskSubmitting, setTaskSubmitting] = useState(false);
+
     const user = JSON.parse(localStorage.getItem('user')) || {};
     const authConfig = { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } };
 
@@ -133,6 +191,7 @@ export default function RecruiterDashboard() {
         fetchJobs();
         fetchApplications();
         fetchTeam();
+        fetchTasks();
     }, []);
 
     useEffect(() => {
@@ -409,6 +468,126 @@ export default function RecruiterDashboard() {
         setActiveView('CandidateProfile');
     };
 
+    // Task Management Handlers
+    const fetchTasks = async () => {
+        try {
+            setLoadingTasks(true);
+            const res = await api.get('/api/tasks');
+            setTasks(res.data.tasks || []);
+            setTaskSuggestions(res.data.suggestions || []);
+        } catch (err) {
+            console.error('Failed to fetch tasks:', err);
+        } finally {
+            setLoadingTasks(false);
+        }
+    };
+
+    const handleCreateTask = async (e) => {
+        e.preventDefault();
+        if (!taskForm.title.trim()) return;
+        setTaskSubmitting(true);
+        try {
+            const res = await api.post('/api/tasks', taskForm);
+            setTasks((prev) => [res.data.task, ...prev]);
+            setMessage('Task created successfully!');
+            setTaskModalOpen(false);
+            setTaskForm(emptyTaskForm);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to create task.');
+        } finally {
+            setTaskSubmitting(false);
+        }
+    };
+
+    const handleToggleTask = async (taskId) => {
+        try {
+            setTasks((prev) =>
+                prev.map((t) =>
+                    t._id === taskId
+                        ? {
+                              ...t,
+                              status: t.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED',
+                              completedAt: t.status === 'COMPLETED' ? null : new Date().toISOString(),
+                          }
+                        : t
+                )
+            );
+            const res = await api.patch(`/api/tasks/${taskId}/toggle`);
+            setTasks((prev) => prev.map((t) => (t._id === taskId ? res.data.task : t)));
+        } catch (err) {
+            fetchTasks();
+            setError('Failed to update task.');
+        }
+    };
+
+    const handleDeleteTask = async (taskId) => {
+        try {
+            setTasks((prev) => prev.filter((t) => t._id !== taskId));
+            await api.delete(`/api/tasks/${taskId}`);
+            setMessage('Task deleted.');
+        } catch (err) {
+            fetchTasks();
+            setError('Failed to delete task.');
+        }
+    };
+
+    const handleClearCompletedTasks = async () => {
+        try {
+            const completedCount = tasks.filter((t) => t.status === 'COMPLETED').length;
+            if (completedCount === 0) return;
+            setTasks((prev) => prev.filter((t) => t.status !== 'COMPLETED'));
+            await api.delete('/api/tasks/completed/all');
+            setMessage(`Cleared ${completedCount} completed task${completedCount === 1 ? '' : 's'}.`);
+        } catch (err) {
+            fetchTasks();
+            setError('Failed to clear completed tasks.');
+        }
+    };
+
+    const handleAddSuggestedTask = async (suggestion) => {
+        try {
+            const payload = {
+                title: suggestion.title,
+                category: suggestion.category,
+                priority: suggestion.priority,
+                relatedJob: suggestion.jobId || null,
+                relatedCandidate: suggestion.applicationId || null,
+            };
+            const res = await api.post('/api/tasks', payload);
+            setTasks((prev) => [res.data.task, ...prev]);
+            setTaskSuggestions((prev) => prev.filter((s) => s.title !== suggestion.title));
+            setMessage('Action item added to your tasks!');
+        } catch (err) {
+            setError('Failed to add suggested task.');
+        }
+    };
+
+    const filteredTasks = useMemo(() => {
+        return tasks.filter((task) => {
+            if (taskFilter === 'PENDING' && task.status === 'COMPLETED') return false;
+            if (taskFilter === 'COMPLETED' && task.status !== 'COMPLETED') return false;
+            if (taskFilter === 'URGENT' && !['URGENT', 'HIGH'].includes(task.priority)) return false;
+
+            if (taskCategoryFilter !== 'ALL' && task.category !== taskCategoryFilter) return false;
+
+            if (taskJobFilter) {
+                const jobMatch = (task.relatedJob?._id || task.relatedJob) === taskJobFilter;
+                if (!jobMatch) return false;
+            }
+
+            return true;
+        });
+    }, [tasks, taskFilter, taskCategoryFilter, taskJobFilter]);
+
+    const taskStats = useMemo(() => {
+        const total = tasks.length;
+        const completed = tasks.filter((t) => t.status === 'COMPLETED').length;
+        const pending = tasks.filter((t) => t.status !== 'COMPLETED').length;
+        const urgent = tasks.filter((t) => ['URGENT', 'HIGH'].includes(t.priority) && t.status !== 'COMPLETED').length;
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+        return { total, completed, pending, urgent, percent };
+    }, [tasks]);
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -492,7 +671,7 @@ export default function RecruiterDashboard() {
                             (item === 'Jobs' && activeView === 'JobDetail') ||
                             (item === 'Candidates' && activeView === 'CandidateProfile') ||
                             (item === 'Interviews' && activeView === 'InterviewDetail');
-                        const Icon = item === 'Overview' ? Grid2x2 : item === 'Jobs' ? BriefcaseBusiness : item === 'Candidates' ? Users : item === 'Pipeline' ? FolderKanban : item === 'Interviews' ? CalendarClock : CheckCheck;
+                        const Icon = item === 'Overview' ? Grid2x2 : item === 'Jobs' ? BriefcaseBusiness : item === 'Candidates' ? Users : item === 'Pipeline' ? FolderKanban : item === 'Interviews' ? CalendarClock : ListTodo;
                         return (
                             <button
                                 key={item}
@@ -1666,6 +1845,394 @@ export default function RecruiterDashboard() {
                         );
                     })()}
 
+                    {activeView === 'Tasks' && (
+                        <div className="space-y-6">
+                            {/* Header Card */}
+                            <div className="page-header-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div>
+                                    <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#7A746D]">Recruiting Ops</div>
+                                    <h1 className="text-[28px] font-bold tracking-[-0.05em] text-[#2B2B2B]">Recruiter tasks & pipeline actions</h1>
+                                    <p className="mt-1 text-sm font-medium text-[#5E5953]">Organize candidate follow-ups, interview preps, screening reviews, and team syncs.</p>
+                                </div>
+                                <div className="flex items-center gap-2.5">
+                                    {taskStats.completed > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={handleClearCompletedTasks}
+                                            className="glass-box inline-flex items-center gap-1.5 rounded-xl border border-[#D8D1C7] px-3.5 py-2.5 text-xs font-semibold text-[#5E5953] hover:text-rose-600 hover:border-rose-300 transition"
+                                            title="Clear completed tasks"
+                                        >
+                                            <Trash2 size={14} />
+                                            <span>Clear completed ({taskStats.completed})</span>
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTaskForm(emptyTaskForm);
+                                            setTaskModalOpen(true);
+                                        }}
+                                        className="btn-primary inline-flex items-center gap-2 rounded-xl bg-[#242424] px-4 py-2.5 text-sm font-semibold text-[#F3EDE2] shadow-sm hover:bg-black transition shrink-0"
+                                    >
+                                        <Plus size={16} style={{ color: '#F3EDE2', stroke: '#F3EDE2' }} className="text-[#F3EDE2]" />
+                                        <span>New task</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Metrics Strip */}
+                            <div className="glass-container overflow-hidden rounded-2xl">
+                                <div className="grid divide-y md:divide-y-0 md:divide-x divide-black/10 sm:grid-cols-2 md:grid-cols-4">
+                                    <div className="px-5 py-4">
+                                        <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A746D]">
+                                            <span>Total Tasks</span>
+                                            <ListTodo size={14} className="text-[#7A746D]" />
+                                        </div>
+                                        <div className="text-[28px] font-bold tracking-[-0.05em] text-[#2B2B2B]">{taskStats.total}</div>
+                                        <div className="text-xs text-[#5E5953] mt-0.5">Across all categories</div>
+                                    </div>
+                                    <div className="px-5 py-4">
+                                        <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A746D]">
+                                            <span>Pending Items</span>
+                                            <span className="rounded-full bg-[#EAE3D5] border border-[#D8D1C7] px-2 py-0.5 text-[10px] font-bold text-[#2B2B2B]">
+                                                Active
+                                            </span>
+                                        </div>
+                                        <div className="text-[28px] font-bold tracking-[-0.05em] text-[#2B2B2B]">{taskStats.pending}</div>
+                                        <div className="text-xs text-[#5E5953] mt-0.5">Awaiting completion</div>
+                                    </div>
+                                    <div className="px-5 py-4">
+                                        <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A746D]">
+                                            <span>Urgent / High</span>
+                                            {taskStats.urgent > 0 ? (
+                                                <span className="rounded-full bg-[#FCE8E6] border border-[#FAD2CF] px-2 py-0.5 text-[10px] font-bold text-[#C5221F]">
+                                                    Action needed
+                                                </span>
+                                            ) : (
+                                                <span className="rounded-full bg-[#E6F4EA] border border-[#CEEAD6] px-2 py-0.5 text-[10px] font-bold text-[#137333]">
+                                                    Clear
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-[28px] font-bold tracking-[-0.05em] text-[#2B2B2B]">{taskStats.urgent}</div>
+                                        <div className="text-xs text-[#5E5953] mt-0.5">High priority action items</div>
+                                    </div>
+                                    <div className="px-5 py-4">
+                                        <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A746D]">
+                                            <span>Completion Rate</span>
+                                            <span className="text-[11px] font-bold text-[#2B2B2B]">{taskStats.percent}%</span>
+                                        </div>
+                                        <div className="text-[28px] font-bold tracking-[-0.05em] text-[#2B2B2B]">{taskStats.completed} <span className="text-sm font-medium text-[#7A746D]">/ {taskStats.total}</span></div>
+                                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#EAE3D5]">
+                                            <div
+                                                className="h-full rounded-full bg-[#242424] transition-all duration-500"
+                                                style={{ width: `${taskStats.percent}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Smart Pipeline Recommendations Banner */}
+                            {taskSuggestions.length > 0 && (
+                                <div className="rounded-2xl border border-[#D8D1C7] bg-[#F4EFE6] p-4 sm:p-5 shadow-sm">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#242424] text-[#F3EDE2] shrink-0">
+                                                <Sparkles size={16} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-bold text-[#2B2B2B]">Live Pipeline Action Items</h3>
+                                                <p className="text-xs text-[#5E5953]">Smart recommendations generated directly from live applicant stages.</p>
+                                            </div>
+                                        </div>
+                                        <span className="self-start sm:self-auto rounded-full bg-[#EAE3D5] border border-[#D8D1C7] px-2.5 py-0.5 text-[11px] font-bold text-[#2B2B2B]">
+                                            {taskSuggestions.length} recommendation{taskSuggestions.length === 1 ? '' : 's'}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        {taskSuggestions.map((suggestion, idx) => (
+                                            <div key={idx} className="flex flex-col justify-between gap-3 rounded-xl border border-[#D8D1C7] bg-[#FAF7F2] p-3.5 hover:border-[#242424] transition shadow-xs">
+                                                <div>
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold border ${TASK_PRIORITY_MAP[suggestion.priority]?.badgeClass || 'bg-stone-100 text-stone-700 border-stone-200'}`}>
+                                                            {suggestion.priority}
+                                                        </span>
+                                                        <span className="text-[10px] font-semibold text-[#7A746D] uppercase tracking-wider">
+                                                            {suggestion.category.replace('_', ' ')}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-xs font-bold text-[#2B2B2B] leading-snug">{suggestion.title}</div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleAddSuggestedTask(suggestion)}
+                                                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#D8D1C7] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#2B2B2B] hover:bg-[#242424] hover:text-[#F3EDE2] transition shadow-xs"
+                                                >
+                                                    <Plus size={13} />
+                                                    <span>Add to My Tasks</span>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Filters Bar */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-2xl glass-container p-3 sm:p-4">
+                                {/* Status Tabs */}
+                                <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 custom-scrollbar">
+                                    {[
+                                        { id: 'ALL', label: 'All', count: taskStats.total },
+                                        { id: 'PENDING', label: 'Pending', count: taskStats.pending },
+                                        { id: 'URGENT', label: 'Urgent', count: taskStats.urgent },
+                                        { id: 'COMPLETED', label: 'Completed', count: taskStats.completed },
+                                    ].map((tab) => {
+                                        const isSelected = taskFilter === tab.id;
+                                        return (
+                                            <button
+                                                key={tab.id}
+                                                type="button"
+                                                onClick={() => setTaskFilter(tab.id)}
+                                                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shrink-0 ${
+                                                    isSelected
+                                                        ? 'bg-[#242424] text-[#F3EDE2] shadow-sm'
+                                                        : 'text-[#5E5953] hover:bg-[#EAE3D5] hover:text-[#2B2B2B]'
+                                                }`}
+                                            >
+                                                <span>{tab.label}</span>
+                                                <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                                                    isSelected ? 'bg-white/20 text-[#F3EDE2]' : 'bg-[#EAE3D5] text-[#5E5953]'
+                                                }`}>
+                                                    {tab.count}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Category & Job Selects */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <div className="flex items-center gap-1.5 rounded-xl border border-[#D8D1C7] bg-white px-2.5 py-1.5 text-xs">
+                                        <Filter size={13} className="text-[#7A746D]" />
+                                        <select
+                                            value={taskCategoryFilter}
+                                            onChange={(e) => setTaskCategoryFilter(e.target.value)}
+                                            className="bg-transparent text-xs font-semibold text-[#2B2B2B] focus:outline-none"
+                                        >
+                                            <option value="ALL">All Categories</option>
+                                            <option value="CANDIDATE_REVIEW">Candidate Review</option>
+                                            <option value="INTERVIEW_PREP">Interview Prep</option>
+                                            <option value="OFFER_MANAGEMENT">Offer Management</option>
+                                            <option value="SOURCING">Sourcing</option>
+                                            <option value="TEAM_SYNC">Team Sync</option>
+                                            <option value="GENERAL">General</option>
+                                        </select>
+                                    </div>
+
+                                    {jobs.length > 0 && (
+                                        <div className="flex items-center gap-1.5 rounded-xl border border-[#D8D1C7] bg-white px-2.5 py-1.5 text-xs">
+                                            <BriefcaseBusiness size={13} className="text-[#7A746D]" />
+                                            <select
+                                                value={taskJobFilter}
+                                                onChange={(e) => setTaskJobFilter(e.target.value)}
+                                                className="bg-transparent text-xs font-semibold text-[#2B2B2B] focus:outline-none max-w-[140px] truncate"
+                                            >
+                                                <option value="">All Jobs</option>
+                                                {jobs.map((job) => (
+                                                    <option key={job._id} value={job._id}>
+                                                        {job.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Task List */}
+                            <div className="space-y-3">
+                                {loadingTasks ? (
+                                    <div className="rounded-2xl glass-container p-8 text-center text-sm font-medium text-[#7A746D]">
+                                        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-[#242424] border-t-transparent mb-2" />
+                                        <p>Loading your action items...</p>
+                                    </div>
+                                ) : filteredTasks.length === 0 ? (
+                                    <div className="rounded-2xl glass-container p-12 text-center">
+                                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAE3D5] text-[#242424] mb-3 border border-[#D8D1C7]">
+                                            <ListTodo size={24} />
+                                        </div>
+                                        <h3 className="text-base font-bold text-[#2B2B2B]">
+                                            {taskFilter === 'COMPLETED'
+                                                ? 'No completed tasks yet'
+                                                : taskFilter === 'URGENT'
+                                                ? 'No urgent action items'
+                                                : 'No tasks found'}
+                                        </h3>
+                                        <p className="mt-1 text-xs text-[#5E5953] max-w-sm mx-auto">
+                                            {taskFilter === 'COMPLETED'
+                                                ? 'Finish open items on your list to see them marked here.'
+                                                : 'Keep your recruitment operations organized by adding follow-ups, interview notes, or candidate screening items.'}
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTaskForm(emptyTaskForm);
+                                                setTaskModalOpen(true);
+                                            }}
+                                            className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#242424] px-4 py-2 text-xs font-bold text-[#F3EDE2] shadow-sm hover:bg-black transition"
+                                        >
+                                            <Plus size={14} />
+                                            <span>Create first task</span>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    filteredTasks.map((task) => {
+                                        const isCompleted = task.status === 'COMPLETED';
+                                        const categoryInfo = TASK_CATEGORY_MAP[task.category] || TASK_CATEGORY_MAP.GENERAL;
+                                        const priorityInfo = TASK_PRIORITY_MAP[task.priority] || TASK_PRIORITY_MAP.MEDIUM;
+                                        const CategoryIcon = categoryInfo.icon;
+                                        const dueInfo = formatTaskDueDate(task.dueDate);
+
+                                        return (
+                                            <div
+                                                key={task._id}
+                                                className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-2xl border transition p-4 ${
+                                                    isCompleted
+                                                        ? 'border-[#D8D1C7] bg-[#FAF7F2]/60 opacity-75'
+                                                        : 'border-[#D8D1C7] bg-[#FAF7F2] hover:border-[#242424] hover:shadow-xs'
+                                                }`}
+                                            >
+                                                <div className="flex items-start gap-3.5 min-w-0">
+                                                    {/* Toggle Checkbox */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleTask(task._id)}
+                                                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border transition ${
+                                                            isCompleted
+                                                                ? 'border-[#137333] bg-[#137333] text-white shadow-xs'
+                                                                : 'border-[#B5AEA4] hover:border-[#242424] bg-white'
+                                                        }`}
+                                                        title={isCompleted ? 'Mark pending' : 'Mark completed'}
+                                                    >
+                                                        {isCompleted && <Check size={12} strokeWidth={3} />}
+                                                    </button>
+
+                                                    <div className="min-w-0 space-y-1">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <span
+                                                                className={`text-sm font-bold leading-snug break-words ${
+                                                                    isCompleted ? 'line-through text-[#7A746D]' : 'text-[#2B2B2B]'
+                                                                }`}
+                                                            >
+                                                                {task.title}
+                                                            </span>
+                                                        </div>
+
+                                                        {task.description && (
+                                                            <p className={`text-xs leading-relaxed ${isCompleted ? 'line-through text-[#9E968B]' : 'text-[#5E5953]'}`}>
+                                                                {task.description}
+                                                            </p>
+                                                        )}
+
+                                                        {/* Badges / Metadata */}
+                                                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                            {/* Category Pill */}
+                                                            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold border ${categoryInfo.badgeClass}`}>
+                                                                <CategoryIcon size={11} />
+                                                                <span>{categoryInfo.label}</span>
+                                                            </span>
+
+                                                            {/* Priority Pill */}
+                                                            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold border ${priorityInfo.badgeClass}`}>
+                                                                {priorityInfo.label}
+                                                            </span>
+
+                                                            {/* Due Date */}
+                                                            {dueInfo && (
+                                                                <span
+                                                                    className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold border ${
+                                                                        dueInfo.isOverdue
+                                                                            ? 'bg-[#FCE8E6] text-[#C5221F] border-[#FAD2CF]'
+                                                                            : dueInfo.isToday
+                                                                            ? 'bg-[#FEF7E0] text-[#B06000] border-[#FEEFC3]'
+                                                                            : 'bg-white text-[#5E5953] border-[#D8D1C7]'
+                                                                    }`}
+                                                                >
+                                                                    <Clock size={10} />
+                                                                    <span>{dueInfo.label}</span>
+                                                                </span>
+                                                            )}
+
+                                                            {/* Related Candidate Tag */}
+                                                            {task.relatedCandidate && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const targetApp = applications.find(
+                                                                            (a) => a._id === (task.relatedCandidate?._id || task.relatedCandidate)
+                                                                        );
+                                                                        if (targetApp) {
+                                                                            setSelectedCandidate(targetApp);
+                                                                            setActiveView('CandidateProfile');
+                                                                        }
+                                                                    }}
+                                                                    className="inline-flex items-center gap-1 rounded-md border border-[#D8D1C7] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#2B2B2B] hover:border-[#242424] transition"
+                                                                    title="View candidate profile"
+                                                                >
+                                                                    <UserRound size={10} className="text-[#7A746D]" />
+                                                                    <span className="truncate max-w-[120px]">
+                                                                        {task.relatedCandidate.name || 'Candidate'}
+                                                                    </span>
+                                                                </button>
+                                                            )}
+
+                                                            {/* Related Job Tag */}
+                                                            {task.relatedJob && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const targetJob = jobs.find(
+                                                                            (j) => j._id === (task.relatedJob?._id || task.relatedJob)
+                                                                        );
+                                                                        if (targetJob) {
+                                                                            setSelectedJob(targetJob);
+                                                                            setActiveView('JobDetail');
+                                                                        }
+                                                                    }}
+                                                                    className="inline-flex items-center gap-1 rounded-md border border-[#D8D1C7] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#5E5953] hover:text-[#2B2B2B] hover:border-[#242424] transition"
+                                                                    title="View job posting"
+                                                                >
+                                                                    <BriefcaseBusiness size={10} className="text-[#7A746D]" />
+                                                                    <span className="truncate max-w-[140px]">
+                                                                        {task.relatedJob.title || 'Job'}
+                                                                    </span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteTask(task._id)}
+                                                        className="p-1.5 rounded-lg text-[#7A746D] hover:text-rose-600 hover:bg-rose-50 transition"
+                                                        title="Delete task"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {activeView === 'Team' && (
                         <div>
                             <div className="page-header-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -2243,6 +2810,174 @@ export default function RecruiterDashboard() {
                                     </div>
                                 </form>
                             )}
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {taskModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="w-full max-w-lg rounded-2xl border border-[#D8D1C7] bg-[#FAF7F2] p-6 shadow-2xl text-[#2B2B2B] my-8"
+                        >
+                            <div className="flex items-center justify-between pb-4 border-b border-[#D8D1C7]">
+                                <div>
+                                    <h3 className="text-lg font-bold text-[#2B2B2B]">Create Recruiter Task</h3>
+                                    <p className="text-xs text-[#5E5953]">Add an actionable to-do item to your recruitment workflow.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setTaskModalOpen(false);
+                                        setTaskForm(emptyTaskForm);
+                                    }}
+                                    className="p-1 rounded-lg hover:bg-[#EAE3D5] text-[#7A746D] hover:text-[#2B2B2B] transition"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleCreateTask} className="mt-4 space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#7A746D] mb-1">
+                                        Task Title *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={taskForm.title}
+                                        onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                                        placeholder="e.g. Conduct initial screen with Sarah Jenkins"
+                                        className="w-full rounded-xl border border-[#D8D1C7] bg-white px-3.5 py-2.5 text-sm text-[#2B2B2B] placeholder:text-[#B5AEA4] focus:border-[#242424] focus:outline-none"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#7A746D] mb-1">
+                                            Category
+                                        </label>
+                                        <select
+                                            value={taskForm.category}
+                                            onChange={(e) => setTaskForm({ ...taskForm, category: e.target.value })}
+                                            className="w-full rounded-xl border border-[#D8D1C7] bg-white px-3 py-2 text-xs font-semibold text-[#2B2B2B] focus:border-[#242424] focus:outline-none"
+                                        >
+                                            <option value="GENERAL">General</option>
+                                            <option value="CANDIDATE_REVIEW">Candidate Review</option>
+                                            <option value="INTERVIEW_PREP">Interview Prep</option>
+                                            <option value="OFFER_MANAGEMENT">Offer Management</option>
+                                            <option value="SOURCING">Sourcing</option>
+                                            <option value="TEAM_SYNC">Hiring Team Sync</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#7A746D] mb-1">
+                                            Priority
+                                        </label>
+                                        <select
+                                            value={taskForm.priority}
+                                            onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
+                                            className="w-full rounded-xl border border-[#D8D1C7] bg-white px-3 py-2 text-xs font-semibold text-[#2B2B2B] focus:border-[#242424] focus:outline-none"
+                                        >
+                                            <option value="URGENT">Urgent (Red)</option>
+                                            <option value="HIGH">High (Amber)</option>
+                                            <option value="MEDIUM">Medium (Blue)</option>
+                                            <option value="LOW">Low (Stone)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#7A746D] mb-1">
+                                            Due Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={taskForm.dueDate ? taskForm.dueDate.slice(0, 10) : ''}
+                                            onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                                            className="w-full rounded-xl border border-[#D8D1C7] bg-white px-3 py-2 text-xs font-semibold text-[#2B2B2B] focus:border-[#242424] focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#7A746D] mb-1">
+                                            Related Job
+                                        </label>
+                                        <select
+                                            value={taskForm.relatedJob}
+                                            onChange={(e) => setTaskForm({ ...taskForm, relatedJob: e.target.value })}
+                                            className="w-full rounded-xl border border-[#D8D1C7] bg-white px-3 py-2 text-xs font-semibold text-[#2B2B2B] focus:border-[#242424] focus:outline-none truncate"
+                                        >
+                                            <option value="">None (Independent)</option>
+                                            {jobs.map((job) => (
+                                                <option key={job._id} value={job._id}>
+                                                    {job.title}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#7A746D] mb-1">
+                                        Related Candidate (Optional)
+                                    </label>
+                                    <select
+                                        value={taskForm.relatedCandidate}
+                                        onChange={(e) => setTaskForm({ ...taskForm, relatedCandidate: e.target.value })}
+                                        className="w-full rounded-xl border border-[#D8D1C7] bg-white px-3 py-2 text-xs font-semibold text-[#2B2B2B] focus:border-[#242424] focus:outline-none truncate"
+                                    >
+                                        <option value="">None</option>
+                                        {applications.map((app) => (
+                                            <option key={app._id} value={app._id}>
+                                                {app.candidateId?.name || app.candidateName || 'Candidate'} — {app.jobId?.title || 'Job'} ({app.status})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#7A746D] mb-1">
+                                        Notes & Context
+                                    </label>
+                                    <textarea
+                                        rows={3}
+                                        value={taskForm.description}
+                                        onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                                        placeholder="Add background notes, interview questions, or follow-up details..."
+                                        className="w-full rounded-xl border border-[#D8D1C7] bg-white px-3.5 py-2.5 text-xs text-[#2B2B2B] placeholder:text-[#B5AEA4] focus:border-[#242424] focus:outline-none resize-none"
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#D8D1C7]">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTaskModalOpen(false);
+                                            setTaskForm(emptyTaskForm);
+                                        }}
+                                        className="rounded-xl border border-[#D8D1C7] bg-[#EAE3D5] px-4 py-2 text-xs font-semibold text-[#2B2B2B] hover:bg-[#D8D1C7] transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={taskSubmitting || !taskForm.title.trim()}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-[#242424] px-5 py-2 text-xs font-bold text-[#F3EDE2] shadow-sm hover:bg-black transition disabled:opacity-50"
+                                    >
+                                        {taskSubmitting ? 'Saving...' : 'Create Task'}
+                                    </button>
+                                </div>
+                            </form>
                         </motion.div>
                     </motion.div>
                 )}

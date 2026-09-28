@@ -44,6 +44,9 @@ app.use('/api/notifications', notificationRoutes);
 const teamRoutes = require('./routes/team');
 app.use('/api/team', teamRoutes);
 
+const taskRoutes = require('./routes/tasks');
+app.use('/api/tasks', taskRoutes);
+
 // 4. Database Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB successfully!"))
